@@ -201,3 +201,24 @@ describe("tryFastChat request options", () => {
     expect(onDelta.mock.calls.flat().join("")).toBe("الإجابة");
   });
 });
+
+describe("route marker after a preamble", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it("escalates without showing the preamble when the marker comes mid-answer", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        sseResponse(["We need to generate an image using the tool. ", "[[MEGSY_ESCALATE_TO_FULL_CHAT:media]]"]),
+      ),
+    );
+    const shown: string[] = [];
+    const outcome = await tryFastChat({
+      messages: [{ role: "user", content: "hi" }],
+      authToken: "t",
+      fingerprint: "f",
+      onDelta: (c) => shown.push(c),
+    });
+    expect(outcome).toBe("escalate");
+    expect(shown.join("")).toBe("");
+  });
+});

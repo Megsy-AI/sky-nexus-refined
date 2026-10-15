@@ -106,8 +106,18 @@ export const stripPlanClaims = (value: string) => {
 
 
 
+// A degenerate model loop can print the same tiny token hundreds of times
+// (e.g. "%20%20%20…" as a giant link). Collapse such runs.
+export const stripDegenerateRepeats = (value: string) =>
+  String(value || "")
+    .replace(/\[[^\]]*\]\((?:[^)]*?(?:%20){8,}[^)]*)\)/g, "")
+    .replace(/(?:%20){8,}/g, " ")
+    .replace(/(.{1,6})\1{24,}/g, "$1");
+
 export const sanitizeLeakedToolText = (value: string) =>
-  stripInternalAgentTrace(stripPlanClaims(stripLeakedToolText(stripRouteSentinel(value))));
+  stripDegenerateRepeats(
+    stripInternalAgentTrace(stripPlanClaims(stripLeakedToolText(stripRouteSentinel(value)))),
+  );
 
 export const makeLeakedToolStreamSanitizer = () => {
   let buffer = "";

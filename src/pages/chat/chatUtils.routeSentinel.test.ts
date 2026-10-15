@@ -27,3 +27,10 @@ describe("sanitizeLeakedToolText", () => {
     expect(sanitizeLeakedToolText(leaked)).not.toContain("MEGSY_ESCALATE");
   });
 });
+
+import { sanitizeLeakedToolText as _s } from "./chatUtils";
+describe("degenerate repeats", () => {
+  it("removes a giant %20 link", () => {
+    expect(_s("hello [x](https://a.com/" + "%20".repeat(200) + ")")).not.toContain("%20%20");
+  });
+});
