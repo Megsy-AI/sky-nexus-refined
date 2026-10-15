@@ -1369,7 +1369,7 @@ async function handlePublic(request: Request, route: string) {
               new Promise<null>((r) => setTimeout(() => r(null), 40_000)),
             ]),
           );
-          if (res) {
+          if (res && ((res as any).runId || !/<!DOCTYPE|timeout|timed out|52\d|50[234]/i.test((res as any).error || ""))) {
             v = res;
             await admin.from("app_kv").update({ value: res }).eq("key", `agentsky_pending:${runId}`);
           }
