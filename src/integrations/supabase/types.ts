@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -506,6 +506,27 @@ export type Database = {
           steps?: Json | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      agent_prompt_config: {
+        Row: {
+          extra_prompt: string
+          id: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          extra_prompt?: string
+          id?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          extra_prompt?: string
+          id?: number
+          updated_at?: string
+          version?: number
         }
         Relationships: []
       }
@@ -1815,6 +1836,24 @@ export type Database = {
           spent_usd?: number | null
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      app_cron_secrets: {
+        Row: {
+          created_at: string
+          name: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          value?: string
         }
         Relationships: []
       }
@@ -3179,6 +3218,7 @@ export type Database = {
       }
       conversations: {
         Row: {
+          agent_key: string | null
           created_at: string
           id: string
           is_pinned: boolean
@@ -3194,6 +3234,7 @@ export type Database = {
           workspace_id: string | null
         }
         Insert: {
+          agent_key?: string | null
           created_at?: string
           id?: string
           is_pinned?: boolean
@@ -3209,6 +3250,7 @@ export type Database = {
           workspace_id?: string | null
         }
         Update: {
+          agent_key?: string | null
           created_at?: string
           id?: string
           is_pinned?: boolean
@@ -4503,6 +4545,30 @@ export type Database = {
           source_value?: Json | null
           translated_value?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      image_generations: {
+        Row: {
+          created_at: string
+          id: string
+          model: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          model?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          model?: string
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -8783,6 +8849,39 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_settings: {
+        Row: {
+          id: boolean
+          milestone_days: number
+          milestone_refs: number
+          referred_credits: number
+          referrer_credits: number
+          revenue_share_percent: number
+          updated_at: string
+          welcome_credits: number
+        }
+        Insert: {
+          id?: boolean
+          milestone_days?: number
+          milestone_refs?: number
+          referred_credits?: number
+          referrer_credits?: number
+          revenue_share_percent?: number
+          updated_at?: string
+          welcome_credits?: number
+        }
+        Update: {
+          id?: boolean
+          milestone_days?: number
+          milestone_refs?: number
+          referred_credits?: number
+          referrer_credits?: number
+          revenue_share_percent?: number
+          updated_at?: string
+          welcome_credits?: number
+        }
+        Relationships: []
+      }
       referral_tiers: {
         Row: {
           created_at: string
@@ -10203,6 +10302,9 @@ export type Database = {
           amount_cents: number | null
           auto_renew: boolean
           cancelled_at: string | null
+          card_agreement_id: string | null
+          card_masked: string | null
+          card_token: string | null
           created_at: string
           currency: string | null
           current_period_end: string | null
@@ -10211,6 +10313,8 @@ export type Database = {
           polar_customer_id: string | null
           polar_product_id: string | null
           polar_subscription_id: string | null
+          referral_ref: string | null
+          renewal_failures: number
           status: string
           updated_at: string
           user_id: string
@@ -10219,6 +10323,9 @@ export type Database = {
           amount_cents?: number | null
           auto_renew?: boolean
           cancelled_at?: string | null
+          card_agreement_id?: string | null
+          card_masked?: string | null
+          card_token?: string | null
           created_at?: string
           currency?: string | null
           current_period_end?: string | null
@@ -10227,6 +10334,8 @@ export type Database = {
           polar_customer_id?: string | null
           polar_product_id?: string | null
           polar_subscription_id?: string | null
+          referral_ref?: string | null
+          renewal_failures?: number
           status?: string
           updated_at?: string
           user_id: string
@@ -10235,6 +10344,9 @@ export type Database = {
           amount_cents?: number | null
           auto_renew?: boolean
           cancelled_at?: string | null
+          card_agreement_id?: string | null
+          card_masked?: string | null
+          card_token?: string | null
           created_at?: string
           currency?: string | null
           current_period_end?: string | null
@@ -10243,6 +10355,8 @@ export type Database = {
           polar_customer_id?: string | null
           polar_product_id?: string | null
           polar_subscription_id?: string | null
+          referral_ref?: string | null
+          renewal_failures?: number
           status?: string
           updated_at?: string
           user_id?: string
@@ -10318,6 +10432,143 @@ export type Database = {
           name?: string
           preferred_model?: string | null
           triggers?: string[]
+        }
+        Relationships: []
+      }
+      team_agent_events: {
+        Row: {
+          agent_id: string
+          content: string
+          created_at: string
+          event_type: string
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id: string
+          content?: string
+          created_at?: string
+          event_type: string
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string
+          content?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_agent_events_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "team_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_agent_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "team_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_agents: {
+        Row: {
+          created_at: string
+          cycles: number
+          id: string
+          last_result: string
+          name: string
+          next_run_at: string
+          role: string
+          status: string
+          task: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycles?: number
+          id?: string
+          last_result?: string
+          name: string
+          next_run_at?: string
+          role: string
+          status?: string
+          task?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          cycles?: number
+          id?: string
+          last_result?: string
+          name?: string
+          next_run_at?: string
+          role?: string
+          status?: string
+          task?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "team_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_runner_secrets: {
+        Row: {
+          singleton: boolean
+          token: string
+        }
+        Insert: {
+          singleton?: boolean
+          token: string
+        }
+        Update: {
+          singleton?: boolean
+          token?: string
+        }
+        Relationships: []
+      }
+      team_workspaces: {
+        Row: {
+          created_at: string
+          goal: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goal?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goal?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -10513,6 +10764,7 @@ export type Database = {
           is_premium: boolean
           language_code: string | null
           last_name: string | null
+          nova_referral_ref: string | null
           photo_url: string | null
           referral_code: string | null
           telegram_user_id: number
@@ -10526,6 +10778,7 @@ export type Database = {
           is_premium?: boolean
           language_code?: string | null
           last_name?: string | null
+          nova_referral_ref?: string | null
           photo_url?: string | null
           referral_code?: string | null
           telegram_user_id: number
@@ -10539,6 +10792,7 @@ export type Database = {
           is_premium?: boolean
           language_code?: string | null
           last_name?: string | null
+          nova_referral_ref?: string | null
           photo_url?: string | null
           referral_code?: string | null
           telegram_user_id?: number
@@ -10800,6 +11054,75 @@ export type Database = {
           name?: string
           preview_audio_url?: string
           voice_id?: string | null
+        }
+        Relationships: []
+      }
+      usage_rates: {
+        Row: {
+          key: string
+          unit: string
+          updated_at: string
+          usd_per_unit: number
+        }
+        Insert: {
+          key: string
+          unit: string
+          updated_at?: string
+          usd_per_unit: number
+        }
+        Update: {
+          key?: string
+          unit?: string
+          updated_at?: string
+          usd_per_unit?: number
+        }
+        Relationships: []
+      }
+      usage_turns: {
+        Row: {
+          awake_seconds: number
+          cost_usd: number
+          created_at: string
+          credits: number
+          id: string
+          input_chars: number
+          machine: string
+          model_tier: string
+          output_chars: number
+          session_id: string | null
+          settled_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          awake_seconds?: number
+          cost_usd?: number
+          created_at?: string
+          credits?: number
+          id?: string
+          input_chars?: number
+          machine?: string
+          model_tier?: string
+          output_chars?: number
+          session_id?: string | null
+          settled_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          awake_seconds?: number
+          cost_usd?: number
+          created_at?: string
+          credits?: number
+          id?: string
+          input_chars?: number
+          machine?: string
+          model_tier?: string
+          output_chars?: number
+          session_id?: string | null
+          settled_at?: string | null
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -12524,6 +12847,14 @@ export type Database = {
       }
     }
     Functions: {
+      _settle_usage_turn: {
+        Args: {
+          p_awake_seconds: number
+          p_output_chars: number
+          p_turn_id: string
+        }
+        Returns: Json
+      }
       accept_conversation_invite: { Args: { p_token: string }; Returns: Json }
       acquire_media_key: {
         Args: { p_model_id: string; p_provider: string }
@@ -12584,6 +12915,10 @@ export type Database = {
           p_operation_key: string
           p_user_id: string
         }
+        Returns: Json
+      }
+      charge_own_credits: {
+        Args: { p_action: string; p_cost: number; p_description?: string }
         Returns: Json
       }
       check_api_rate_limit: {
@@ -12667,6 +13002,20 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_team_agent: {
+        Args: never
+        Returns: {
+          agent_id: string
+          agent_name: string
+          agent_role: string
+          cycles: number
+          goal: string
+          last_result: string
+          task: string
+          user_id: string
+          workspace_id: string
+        }[]
+      }
       claim_telegram_referral: { Args: { p_code: string }; Returns: Json }
       cleanup_high_volume_tables: { Args: never; Returns: Json }
       cleanup_old_research_reports: { Args: never; Returns: undefined }
@@ -12690,6 +13039,7 @@ export type Database = {
         Args: { p_limit?: number; p_user_id: string }
         Returns: Json
       }
+      consume_free_wan_image: { Args: { p_user_id: string }; Returns: Json }
       consume_model_use: {
         Args: {
           _cost?: number
@@ -12836,6 +13186,7 @@ export type Database = {
         }
         Returns: number
       }
+      grant_welcome_credits: { Args: { p_user_id: string }; Returns: Json }
       has_elite_plan: { Args: { p_user_id: string }; Returns: boolean }
       has_paid_plan: { Args: { p_user_id: string }; Returns: boolean }
       has_role: {
@@ -12982,6 +13333,15 @@ export type Database = {
       }
       my_referral_milestone: { Args: never; Returns: Json }
       nomi_dispatch_due_reminders: { Args: never; Returns: number }
+      open_own_usage_turn: {
+        Args: {
+          p_input_chars: number
+          p_machine?: string
+          p_model_tier?: string
+          p_session: string
+        }
+        Returns: string
+      }
       owns_conversation: {
         Args: { p_conversation_id: string }
         Returns: boolean
@@ -13055,6 +13415,14 @@ export type Database = {
           similarity: number
         }[]
       }
+      settle_own_usage_turn: {
+        Args: {
+          p_awake_seconds: number
+          p_output_chars: number
+          p_turn_id: string
+        }
+        Returns: Json
+      }
       spend_credits_auto:
         | {
             Args: {
@@ -13086,6 +13454,10 @@ export type Database = {
       }
       store_provider_key: {
         Args: { p_provider: string; p_value: string }
+        Returns: Json
+      }
+      sweep_open_usage_turns: {
+        Args: { p_max_age_minutes?: number }
         Returns: Json
       }
       sync_credit_total: { Args: { p_user_id: string }; Returns: number }
