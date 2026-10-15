@@ -69,7 +69,7 @@ async function generateViaAgentSky(
     const run = await agentApi.media({
       kind,
       prompt: scene.prompt,
-      aspect: (kind === "video" ? scene.aspect_ratio : undefined) || aspectRatio,
+      aspect: normalizeAspect(kind, (kind === "video" ? scene.aspect_ratio : undefined) || aspectRatio),
       duration: kind === "video" ? scene.duration_seconds || 5 : undefined,
       idempotencyKey: crypto.randomUUID(),
     });
@@ -378,4 +378,11 @@ export async function regenerateScene(
       type: plan.mode === "video" ? "video" : "image",
     };
   }
+}
+
+/** AgentSky accepts a fixed ratio list; videos only support landscape/portrait. */
+function normalizeAspect(kind: "image" | "video", a?: string): string {
+  const v = String(a || "").trim();
+  if (kind === "video") return v === "9:16" ? "9:16" : "16:9";
+  return ["1:1", "16:9", "9:16", "4:3", "3:4"].includes(v) ? v : "1:1";
 }
