@@ -56,6 +56,40 @@ function startProgressTicker(
 /** Last-resort image models: always-available slugs tried when the chosen one fails. */
 const IMAGE_FALLBACK_SLUGS = ["deapi-flux-schnell"];
 
+/** Every chat image/video now goes through AgentSky (one provider for the whole app). */
+async function generateViaAgentSky(
+  kind: "image" | "video",
+  scene: MediaPlanScene,
+  onPartial: ScenePartialCb | undefined,
+  aspectRatio?: string,
+): Promise<string> {
+  const { agentApi, mediaStatus } = await import("@/lib/agentsky/client");
+  const stop = startProgressTicker(scene.index, kind === "video" ? 90_000 : 18_000, onPartial);
+  try {
+    const run = await agentApi.media({
+      kind,
+      prompt: scene.prompt,
+      aspect: normalizeAspect(kind, (kind === "video" ? scene.aspect_ratio : undefined) || aspectRatio),
+      duration: kind === "video" ? scene.duration_seconds || 5 : undefined,
+      idempotencyKey: crypto.randomUUID(),
+    });
+    const started = Date.now();
+    while (Date.now() - started < 15 * 60_000) {
+      await new Promise((r) => setTimeout(r, kind === "video" ? 5000 : 2500));
+      const st = await mediaStatus(run.runId, run.token).catch(() => null);
+      if (!st) continue;
+      if (st.urls?.length) {
+        onPartial?.(scene.index, kind === "image" ? st.urls[0] : "", 1);
+        return st.urls[0];
+      }
+      if (/FAIL|ERROR|CANCEL/i.test(st.status || "")) throw new Error(st.error || `${kind} failed`);
+    }
+    throw new Error("timeout");
+  } finally {
+    stop();
+  }
+}
+
 async function requestImage(
   scene: MediaPlanScene,
   modelSlug: string,
@@ -117,7 +151,8 @@ async function generateImageScene(
   onPartial?: ScenePartialCb,
   aspectRatio?: string,
 ): Promise<string> {
-  // All image models go through the image router edge function.
+  return generateViaAgentSky("image", scene, onPartial, aspectRatio);
+  // Legacy image router path below is kept for reference only.
   const stopTicker = startProgressTicker(scene.index, 18_000, onPartial);
   const refs: string[] = Array.isArray((scene as any).reference_image_urls)
     ? ((scene as any).reference_image_urls as string[])
@@ -155,6 +190,8 @@ async function generateVideoScene(
   aspectRatio?: string,
   onCountdown?: (index: number, endsAt: number | null) => void,
 ): Promise<string> {
+  void onCountdown;
+  return generateViaAgentSky("video", scene, onPartial, aspectRatio);
   const body: Record<string, unknown> = {
     prompt: scene.prompt,
     model_slug: modelSlug,
@@ -341,4 +378,11 @@ export async function regenerateScene(
       type: plan.mode === "video" ? "video" : "image",
     };
   }
+}
+
+/** AgentSky accepts a fixed ratio list; videos only support landscape/portrait. */
+function normalizeAspect(kind: "image" | "video", a?: string): string {
+  const v = String(a || "").trim();
+  if (kind === "video") return v === "9:16" ? "9:16" : "16:9";
+  return ["1:1", "16:9", "9:16", "4:3", "3:4"].includes(v) ? v : "1:1";
 }

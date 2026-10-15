@@ -555,8 +555,9 @@ function mediaIntent(text: string) {
     text,
   );
 }
+// Wan video takes plain ratios ("16:9"); pixel pairs are rejected as unsupported.
 function ratio(a: string) {
-  return a === "9:16" ? "720:1280" : a === "1:1" ? "720:720" : "1280:720";
+  return a === "9:16" ? "9:16" : a === "1:1" ? "1:1" : "16:9";
 }
 const MODELS = [
   {
