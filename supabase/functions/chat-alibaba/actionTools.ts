@@ -420,13 +420,24 @@ export async function runActionTool(
     }
 
     case "generate_image": {
-      const data = await callFunction(ctx, "anything-api", {
+      const pick = (d: any) =>
+        d?.url ?? d?.image_url ?? d?.images?.[0]?.url ?? d?.output?.[0] ?? null;
+      const imageArgs = {
         prompt: String(args?.prompt ?? ""),
         aspect_ratio: args?.aspect_ratio ?? "1:1",
-        model_slug: "wan2.7-image",
-      });
-      const url =
-        data?.url ?? data?.image_url ?? data?.images?.[0]?.url ?? data?.output?.[0] ?? null;
+      };
+      // Runway pool first (it has active keys), then the Wan pool as fallback.
+      let data: any = await callFunction(ctx, "media-image", imageArgs).catch((e: unknown) => ({
+        error: String(e),
+      }));
+      if (!pick(data)) {
+        const wan: any = await callFunction(ctx, "anything-api", {
+          ...imageArgs,
+          model_slug: "wan2.7-image",
+        }).catch((e: unknown) => ({ error: String(e) }));
+        if (pick(wan)) data = wan;
+      }
+      const url = pick(data);
       if (!url) return `image failed: ${data?.message ?? data?.error ?? "unknown"}`;
       ctx.send({ media: { kind: "image", url } });
       return `image ready: ${url}`;
