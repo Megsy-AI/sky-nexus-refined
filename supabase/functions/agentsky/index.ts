@@ -1063,11 +1063,13 @@ async function handleApi(request: Request, path: string, user: { user: any; toke
       runId = `pend_${crypto.randomUUID().replace(/-/g, "")}`;
       status = "RUNNING";
       const seconds = kind === "video" ? Math.min(Math.max(Number(body?.duration) || 5, 2), 5) : 1;
-      await admin.from("app_kv").insert({
+      const { error: kvErr } = await admin.from("app_kv").insert({
+        project_id: "00000000-0000-0000-0000-000000000000",
         user_id: uid,
         key: `agentsky_pending:${runId}`,
         value: { job: { kind, prompt, aspect: String(body?.aspect || "1:1"), seconds, idem: idemKey } },
       });
+      if (kvErr) console.error("[agentsky] pending insert failed", kvErr.message);
       const finish = started
         .then((run: any) => ({ runId: run.runId, status: run.status }))
         .catch((e: any) => ({ error: String(e?.message || e) }))
