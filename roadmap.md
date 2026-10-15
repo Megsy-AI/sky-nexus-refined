@@ -1,7 +1,9 @@
 # Roadmap
 - [x] Import sky-nexus-hub repository
-- [x] Hide internal hand-off tag ([[MEGSY_ESCALATE...]]) from replies
-- [x] Redesign thinking / tools display (quiet single line + timeline)
+- [x] Hide internal hand-off tag from replies
+- [x] Redesign thinking / tools display
 - [x] Hide broken repeated "%20" output
-- [ ] Server features without Vercel keys — waiting on user: confirm adding the Supabase service-role key once as a Lovable secret (provider keys stay in Supabase tables / Telegram bot)
-- [ ] Image generation, AgentSky, video — run on the user's own Supabase functions; need redeploy there after fixes (outside this project)
+- [x] Chat image tool: try Runway pool first, then Wan (deployed chat-alibaba)
+- [ ] Free-plan images (Wan) — blocked: alibaba_keys pool is empty; user adds keys via Telegram bot
+- [ ] Chat brain capacity — blocked: only 1 active Cerebras key, hitting per-minute limit; user adds keys
+- [ ] AgentSky "not configured" — to investigate next
