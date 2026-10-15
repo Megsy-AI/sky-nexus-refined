@@ -1070,12 +1070,18 @@ async function handleApi(request: Request, path: string, user: { user: any; toke
         value: { job: { kind, prompt, aspect: String(body?.aspect || "1:1"), seconds, idem: idemKey } },
       });
       if (kvErr) console.error("[agentsky] pending insert failed", kvErr.message);
+      // Only a real run id is stored here; transport timeouts are left for the
+      // status poll to resume, so they never overwrite a resolved result.
       const finish = started
-        .then((run: any) => ({ runId: run.runId, status: run.status }))
-        .catch((e: any) => ({ error: String(e?.message || e) }))
-        .then((value) =>
-          admin.from("app_kv").update({ value }).eq("key", `agentsky_pending:${runId}`),
-        );
+        .then((run: any) =>
+          run?.runId
+            ? admin
+                .from("app_kv")
+                .update({ value: { runId: run.runId, status: run.status } })
+                .eq("key", `agentsky_pending:${runId}`)
+            : null,
+        )
+        .catch(() => null);
       (globalThis as any).EdgeRuntime?.waitUntil?.(finish);
     } else {
       runId = (first as any).runId;
