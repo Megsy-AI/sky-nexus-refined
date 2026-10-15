@@ -621,6 +621,18 @@ async function startMedia(
         `This ${kind} needs ${charge.credits} credits. You are out of credits — upgrade your plan to keep going.`,
       );
   }
+  return await runMediaOnGateway(uid, kind, prompt, aspect, seconds, idempotencyKey);
+}
+/** Same body + Idempotency-Key always maps to the same gateway job, so a retry resumes it. */
+async function runMediaOnGateway(
+  uid: string,
+  kind: "image" | "video",
+  prompt: string,
+  aspect: string,
+  seconds: number,
+  idempotencyKey: string,
+) {
+  const model = MODELS.find((m) => m.kind === kind)!;
   const input =
     kind === "image"
       ? { prompt: prompt.slice(0, 5000), aspect_ratio: aspect }
@@ -1027,6 +1039,7 @@ async function handleApi(request: Request, path: string, user: { user: any; toke
       .trim()
       .slice(0, 5000);
     if (!prompt) return json(rpcError("invalid_request", "Prompt is required"), 400);
+    const idemKey = String(body?.idempotencyKey || crypto.randomUUID());
     const started = startMedia(
       uid,
       token,
@@ -1034,7 +1047,7 @@ async function handleApi(request: Request, path: string, user: { user: any; toke
       prompt,
       String(body?.aspect || "1:1"),
       Number(body?.duration) || 5,
-      String(body?.idempotencyKey || crypto.randomUUID()),
+      idemKey,
     );
     // The gateway's /run blocks until the video is rendered (minutes), longer than
     // the HTTP proxy allows. Past ~60s we hand back a pending id and finish in the
@@ -1049,10 +1062,18 @@ async function handleApi(request: Request, path: string, user: { user: any; toke
     if (first === TIMEOUT) {
       runId = `pend_${crypto.randomUUID().replace(/-/g, "")}`;
       status = "RUNNING";
+      const seconds = kind === "video" ? Math.min(Math.max(Number(body?.duration) || 5, 2), 5) : 1;
+      await admin.from("app_kv").insert({
+        user_id: uid,
+        key: `agentsky_pending:${runId}`,
+        value: { job: { kind, prompt, aspect: String(body?.aspect || "1:1"), seconds, idem: idemKey } },
+      });
       const finish = started
         .then((run: any) => ({ runId: run.runId, status: run.status }))
         .catch((e: any) => ({ error: String(e?.message || e) }))
-        .then((value) => admin.from("app_kv").insert({ user_id: uid, key: `agentsky_pending:${runId}`, value }));
+        .then((value) =>
+          admin.from("app_kv").update({ value }).eq("key", `agentsky_pending:${runId}`),
+        );
       (globalThis as any).EdgeRuntime?.waitUntil?.(finish);
     } else {
       runId = (first as any).runId;
@@ -1326,8 +1347,26 @@ async function handlePublic(request: Request, route: string) {
           .select("value")
           .eq("key", `agentsky_pending:${runId}`)
           .maybeSingle();
-        const v: any = data?.value;
-        if (!v) return json({ runId, status: "RUNNING", urls: [] });
+        let v: any = data?.value;
+        if (v?.job && !v.runId && !v.error) {
+          // Background finisher was cut off by the edge time limit: resume the
+          // same gateway job (idempotent) for up to ~40s on this poll.
+          const { data: row } = await admin.from("app_kv").select("user_id").eq("key", `agentsky_pending:${runId}`).maybeSingle();
+          const j = v.job;
+          const res = await withKey(() =>
+            Promise.race([
+              runMediaOnGateway(row?.user_id || "", j.kind, j.prompt, j.aspect, j.seconds, j.idem)
+                .then((r: any) => ({ runId: r.runId, status: r.status }))
+                .catch((e: any) => ({ error: String(e?.message || e) })),
+              new Promise<null>((r) => setTimeout(() => r(null), 40_000)),
+            ]),
+          );
+          if (res) {
+            v = res;
+            await admin.from("app_kv").update({ value: res }).eq("key", `agentsky_pending:${runId}`);
+          }
+        }
+        if (!v || (!v.runId && !v.error)) return json({ runId, status: "RUNNING", urls: [] });
         if (v.error || !v.runId) return json({ runId, status: "FAILED", urls: [], error: v.error || "failed" });
         realId = v.runId;
       }
