@@ -621,6 +621,18 @@ async function startMedia(
         `This ${kind} needs ${charge.credits} credits. You are out of credits — upgrade your plan to keep going.`,
       );
   }
+  return await runMediaOnGateway(uid, kind, prompt, aspect, seconds, idempotencyKey);
+}
+/** Same body + Idempotency-Key always maps to the same gateway job, so a retry resumes it. */
+async function runMediaOnGateway(
+  uid: string,
+  kind: "image" | "video",
+  prompt: string,
+  aspect: string,
+  seconds: number,
+  idempotencyKey: string,
+) {
+  const model = MODELS.find((m) => m.kind === kind)!;
   const input =
     kind === "image"
       ? { prompt: prompt.slice(0, 5000), aspect_ratio: aspect }
@@ -1027,20 +1039,59 @@ async function handleApi(request: Request, path: string, user: { user: any; toke
       .trim()
       .slice(0, 5000);
     if (!prompt) return json(rpcError("invalid_request", "Prompt is required"), 400);
-    const run = await startMedia(
+    const idemKey = String(body?.idempotencyKey || crypto.randomUUID());
+    const started = startMedia(
       uid,
       token,
       kind,
       prompt,
       String(body?.aspect || "1:1"),
       Number(body?.duration) || 5,
-      String(body?.idempotencyKey || crypto.randomUUID()),
+      idemKey,
     );
+    // The gateway's /run blocks until the video is rendered (minutes), longer than
+    // the HTTP proxy allows. Past ~60s we hand back a pending id and finish in the
+    // background; media-status resolves it once the real run id is stored.
+    const TIMEOUT = Symbol("timeout");
+    const first = await Promise.race([
+      started,
+      new Promise<typeof TIMEOUT>((r) => setTimeout(() => r(TIMEOUT), 60_000)),
+    ]);
+    let runId: string;
+    let status: string;
+    if (first === TIMEOUT) {
+      runId = `pend_${crypto.randomUUID().replace(/-/g, "")}`;
+      status = "RUNNING";
+      const seconds = kind === "video" ? Math.min(Math.max(Number(body?.duration) || 5, 2), 5) : 1;
+      const { error: kvErr } = await admin.from("app_kv").insert({
+        project_id: "00000000-0000-0000-0000-000000000000",
+        user_id: uid,
+        key: `agentsky_pending:${runId}`,
+        value: { job: { kind, prompt, aspect: String(body?.aspect || "1:1"), seconds, idem: idemKey } },
+      });
+      if (kvErr) console.error("[agentsky] pending insert failed", kvErr.message);
+      // Only a real run id is stored here; transport timeouts are left for the
+      // status poll to resume, so they never overwrite a resolved result.
+      const finish = started
+        .then((run: any) =>
+          run?.runId
+            ? admin
+                .from("app_kv")
+                .update({ value: { runId: run.runId, status: run.status } })
+                .eq("key", `agentsky_pending:${runId}`)
+            : null,
+        )
+        .catch(() => null);
+      (globalThis as any).EdgeRuntime?.waitUntil?.(finish);
+    } else {
+      runId = (first as any).runId;
+      status = (first as any).status;
+    }
     return json({
-      runId: run.runId,
-      token: await statusToken(run.runId),
+      runId,
+      token: await statusToken(runId),
       model: kind === "image" ? "Higgsfield Image" : "Higgsfield Video",
-      status: run.status,
+      status,
     });
   }
   return json(rpcError("not_found", "Not found"), 404);
@@ -1297,8 +1348,38 @@ async function handlePublic(request: Request, route: string) {
     )
       return json(rpcError("unauthorized", "Invalid media token"), 403);
     try {
+      let realId = runId;
+      if (runId.startsWith("pend_")) {
+        const { data } = await admin
+          .from("app_kv")
+          .select("value")
+          .eq("key", `agentsky_pending:${runId}`)
+          .maybeSingle();
+        let v: any = data?.value;
+        if (v?.job && !v.runId && !v.error) {
+          // Background finisher was cut off by the edge time limit: resume the
+          // same gateway job (idempotent) for up to ~40s on this poll.
+          const { data: row } = await admin.from("app_kv").select("user_id").eq("key", `agentsky_pending:${runId}`).maybeSingle();
+          const j = v.job;
+          const res = await withKey(() =>
+            Promise.race([
+              runMediaOnGateway(row?.user_id || "", j.kind, j.prompt, j.aspect, j.seconds, j.idem)
+                .then((r: any) => ({ runId: r.runId, status: r.status }))
+                .catch((e: any) => ({ error: String(e?.message || e) })),
+              new Promise<null>((r) => setTimeout(() => r(null), 40_000)),
+            ]),
+          );
+          if (res && ((res as any).runId || !/<!DOCTYPE|timeout|timed out|52\d|50[234]/i.test((res as any).error || ""))) {
+            v = res;
+            await admin.from("app_kv").update({ value: res }).eq("key", `agentsky_pending:${runId}`);
+          }
+        }
+        if (!v || (!v.runId && !v.error)) return json({ runId, status: "RUNNING", urls: [] });
+        if (v.error || !v.runId) return json({ runId, status: "FAILED", urls: [], error: v.error || "failed" });
+        realId = v.runId;
+      }
       // Public route has no user JWT, but provider calls still need a key.
-      return json(await withKey(() => runState(runId)));
+      return json({ ...(await withKey(() => runState(realId))), runId });
     } catch (e: any) {
       return json({ runId, status: "RUNNING", urls: [], error: String(e?.message || e) });
     }
