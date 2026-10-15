@@ -1027,7 +1027,7 @@ async function handleApi(request: Request, path: string, user: { user: any; toke
       .trim()
       .slice(0, 5000);
     if (!prompt) return json(rpcError("invalid_request", "Prompt is required"), 400);
-    const run = await startMedia(
+    const started = startMedia(
       uid,
       token,
       kind,
@@ -1036,11 +1036,33 @@ async function handleApi(request: Request, path: string, user: { user: any; toke
       Number(body?.duration) || 5,
       String(body?.idempotencyKey || crypto.randomUUID()),
     );
+    // The gateway's /run blocks until the video is rendered (minutes), longer than
+    // the HTTP proxy allows. Past ~60s we hand back a pending id and finish in the
+    // background; media-status resolves it once the real run id is stored.
+    const TIMEOUT = Symbol("timeout");
+    const first = await Promise.race([
+      started,
+      new Promise<typeof TIMEOUT>((r) => setTimeout(() => r(TIMEOUT), 60_000)),
+    ]);
+    let runId: string;
+    let status: string;
+    if (first === TIMEOUT) {
+      runId = `pend_${crypto.randomUUID().replace(/-/g, "")}`;
+      status = "RUNNING";
+      const finish = started
+        .then((run: any) => ({ runId: run.runId, status: run.status }))
+        .catch((e: any) => ({ error: String(e?.message || e) }))
+        .then((value) => admin.from("app_kv").insert({ user_id: uid, key: `agentsky_pending:${runId}`, value }));
+      (globalThis as any).EdgeRuntime?.waitUntil?.(finish);
+    } else {
+      runId = (first as any).runId;
+      status = (first as any).status;
+    }
     return json({
-      runId: run.runId,
-      token: await statusToken(run.runId),
+      runId,
+      token: await statusToken(runId),
       model: kind === "image" ? "Higgsfield Image" : "Higgsfield Video",
-      status: run.status,
+      status,
     });
   }
   return json(rpcError("not_found", "Not found"), 404);
@@ -1297,8 +1319,20 @@ async function handlePublic(request: Request, route: string) {
     )
       return json(rpcError("unauthorized", "Invalid media token"), 403);
     try {
+      let realId = runId;
+      if (runId.startsWith("pend_")) {
+        const { data } = await admin
+          .from("app_kv")
+          .select("value")
+          .eq("key", `agentsky_pending:${runId}`)
+          .maybeSingle();
+        const v: any = data?.value;
+        if (!v) return json({ runId, status: "RUNNING", urls: [] });
+        if (v.error || !v.runId) return json({ runId, status: "FAILED", urls: [], error: v.error || "failed" });
+        realId = v.runId;
+      }
       // Public route has no user JWT, but provider calls still need a key.
-      return json(await withKey(() => runState(runId)));
+      return json({ ...(await withKey(() => runState(realId))), runId });
     } catch (e: any) {
       return json({ runId, status: "RUNNING", urls: [], error: String(e?.message || e) });
     }
