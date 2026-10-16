@@ -82,8 +82,12 @@ export const stripUIBlocks = (text: string) => text.replace(/```[ \t]*ui\b[\s\S]
  * Re-wrap any bare top-level JSON object that looks like a UI spec
  * (has a "blocks" array) so it still renders as a card.
  */
-export function wrapBareUISpecs(text: string): string {
-  if (!text.includes('"blocks"')) return text;
+export function wrapBareUISpecs(input: string): string {
+  if (!input.includes('"blocks"')) return input;
+  // Close a trailing ```ui fence the model forgot to close.
+  let text = input;
+  const fenceCount = (text.match(/```/g) || []).length;
+  if (fenceCount % 2 === 1 && /```[ \t]*ui\b[^`]*$/.test(text)) text = text.replace(/\s*$/, "\n```");
   const fences: Array<[number, number]> = [];
   text.replace(/```[\s\S]*?(```|$)/g, (m, _e, off: number) => (fences.push([off, off + m.length]), m));
   const inFence = (i: number) => fences.some(([a, b]) => i >= a && i < b);

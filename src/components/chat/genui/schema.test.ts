@@ -39,4 +39,7 @@ describe("wrapBareUISpecs", () => {
     const t = '```ui\n{"title":"T","blocks":[]}\n```\n{"a":1}';
     expect(wrapBareUISpecs(t)).toBe(t);
   });
+  it("closes an unclosed ui fence", () => {
+    expect(wrapBareUISpecs('```ui\n{"title":"T","blocks":[]}\n')).toBe('```ui\n{"title":"T","blocks":[]}\n```');
+  });
 });
