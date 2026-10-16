@@ -7,3 +7,4 @@
 - [ ] Free-plan images (Wan) — blocked: alibaba_keys pool is empty; user adds keys via Telegram bot
 - [ ] Chat brain capacity — blocked: only 1 active Cerebras key, hitting per-minute limit; user adds keys
 - [ ] AgentSky "not configured" — to investigate next
+- [ ] Agents page: real brand icons, robot for Megsy
