@@ -151,7 +151,7 @@ function BlockView({ b, values, set, disabled, act, first }: { b: Block; values:
         <div>
           <Label aside={`${fmt(v)}${b.unit ? ` ${b.unit}` : ""}`}>{b.label}</Label>
           <input
-            type="range" aria-label={b.label} min={b.min} max={b.max} step={b.step ?? 1} value={v} disabled={disabled}
+            type="range" dir="ltr" aria-label={b.label} min={b.min} max={b.max} step={b.step ?? 1} value={v} disabled={disabled}
             onChange={(e) => set(b.id, Number(e.target.value))}
             style={{ background: `linear-gradient(to right, hsl(var(--foreground)) ${pct}%, hsl(var(--muted)) ${pct}%)` }}
             className="h-2 w-full cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:size-6 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-4 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:shadow-md"
