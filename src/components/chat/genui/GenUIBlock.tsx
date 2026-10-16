@@ -153,7 +153,7 @@ function BlockView({ b, values, set, disabled, act, first }: { b: Block; values:
           <input
             type="range" aria-label={b.label} min={b.min} max={b.max} step={b.step ?? 1} value={v} disabled={disabled}
             onChange={(e) => set(b.id, Number(e.target.value))}
-            style={{ background: `linear-gradient(to right, var(--foreground) ${pct}%, var(--muted) ${pct}%)` }}
+            style={{ background: `linear-gradient(to right, hsl(var(--foreground)) ${pct}%, hsl(var(--muted)) ${pct}%)` }}
             className="h-2 w-full cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:size-6 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-4 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:shadow-md"
           />
           <div className="mt-1.5 flex justify-between text-[11.5px] tabular-nums text-muted-foreground">
