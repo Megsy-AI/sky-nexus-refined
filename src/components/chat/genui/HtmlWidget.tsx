@@ -35,7 +35,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:start;fon
 `;
 
 const BRIDGE = `<script>
-window.megsy={send:function(t){parent.postMessage({__megsy:'send',text:String(t)},'*')}};
+window.megsy={send:function(t){parent.postMessage({__megsy:'send',id:window.name,text:String(t)},'*')}};
 document.addEventListener('click',function(e){var el=e.target.closest('[data-send]');if(el){e.preventDefault();megsy.send(el.getAttribute('data-send')||el.textContent.trim())}});
 function __h(){parent.postMessage({__megsy:'h',id:window.name,h:Math.ceil(document.body.getBoundingClientRect().height)+8},'*')}
 document.querySelectorAll('img[data-q]').forEach(function(im){fetch('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=3&prop=pageimages&piprop=thumbnail&pithumbsize=800&gsrsearch='+encodeURIComponent(im.getAttribute('data-q'))).then(function(r){return r.json()}).then(function(j){var p=Object.values((j.query||{}).pages||{}).sort(function(a,b){return a.index-b.index}).find(function(x){return x.thumbnail});if(p){im.src=p.thumbnail.source}}).catch(function(){})});
@@ -52,7 +52,7 @@ export function HtmlWidget({ html, done }: { html: string; done: boolean }) {
 
   useEffect(() => {
     const on = (e: MessageEvent) => {
-      if (e.source !== ref.current?.contentWindow || !e.data?.__megsy) return;
+      if (!e.data?.__megsy || e.data.id !== id) return;
       if (e.data.__megsy === "h") setH(Math.min(2400, Math.max(40, Number(e.data.h) || 0)));
       if (e.data.__megsy === "send" && onSend) onSend(String(e.data.text).slice(0, 2000));
     };
