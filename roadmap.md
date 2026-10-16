@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Deploy latest chat UI to existing Vercel production project and verify all three public domains
 - [x] Use Open Intelligent UI inside chat while preserving searched images and interactive replies (11 tests; photo + selection + submit verified in browser)
 - [ ] Verify a live authenticated model reply end-to-end — blocked: external unmanaged auth has no available managed browser session
 - [x] Import sky-nexus-hub repository
