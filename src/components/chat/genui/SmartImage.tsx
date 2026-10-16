@@ -7,6 +7,15 @@ const cache = new Map<string, Promise<string | null>>();
 
 async function lookup(q: string): Promise<string | null> {
   const tryLang = async (lang: string) => {
+    // Exact named subjects first: search ranking can return a related dish or
+    // another product ahead of the actual article the user asked about.
+    const exact = await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&titles=${encodeURIComponent(q)}&prop=pageimages&piprop=thumbnail&pithumbsize=800`);
+    if (exact.ok) {
+      const data = await exact.json();
+      const pages = Object.values(data?.query?.pages ?? {}) as { thumbnail?: { source?: string } }[];
+      const photo = pages.find((page) => page.thumbnail?.source)?.thumbnail?.source;
+      if (photo) return photo;
+    }
     const u = `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=3&prop=pageimages&piprop=thumbnail&pithumbsize=800`;
     const r = await fetch(u);
     if (!r.ok) return null;

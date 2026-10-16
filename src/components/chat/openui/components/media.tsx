@@ -40,7 +40,10 @@ function searchImages(query: string): Promise<string[]> {
       if (!url) searches.delete(query);
       return url ? [url] : [];
     });
-    if (searches.size > 200) { const first = searches.keys().next().value; if (first !== undefined) searches.delete(first); };
+    if (searches.size > 200) {
+      const first = searches.keys().next().value;
+      if (first !== undefined) searches.delete(first);
+    }
     searches.set(query, request);
   }
   return request;
@@ -65,22 +68,37 @@ function useImageSearch(query: string | null): string[] | undefined {
   return query && result?.query === query ? result.images : undefined;
 }
 
-type PhotoProps = { query: string; src?: string | null; aspectRatio?: number | null; radius?: unknown; fit?: string | null };
+type PhotoProps = {
+  query: string;
+  src?: string | null;
+  aspectRatio?: number | null;
+  radius?: unknown;
+  fit?: string | null;
+};
 
 /** A photo from src, or, without one or when it fails, the best search result for query. */
-function Photo(props: PhotoProps) {
+export function SearchPhoto(props: PhotoProps) {
   const alt = typeof props.query === "string" ? props.query.trim() : "";
   const src = webUrl(props.src);
   const [failed, setFailed] = useState<string[]>([]);
   const [loaded, setLoaded] = useState<string | null>(null);
   const needSearch = (!src || failed.includes(src)) && alt.length > 2;
   const found = useImageSearch(needSearch ? alt : null);
-  const current = [src, ...(found ?? [])].find((url): url is string => !!url && !failed.includes(url));
+  const current = [src, ...(found ?? [])].find(
+    (url): url is string => !!url && !failed.includes(url),
+  );
   const settled = !current && (!needSearch || found !== undefined);
-  const ratio = typeof props.aspectRatio === "number" && props.aspectRatio > 0.2 && props.aspectRatio < 5 ? props.aspectRatio : 1.5;
+  const ratio =
+    typeof props.aspectRatio === "number" && props.aspectRatio > 0.2 && props.aspectRatio < 5
+      ? props.aspectRatio
+      : 1.5;
   return (
     <div
-      className={cx("iui-image", props.fit === "contain" && "is-contain", loaded === current && "is-loaded")}
+      className={cx(
+        "iui-image",
+        props.fit === "contain" && "is-contain",
+        loaded === current && "is-loaded",
+      )}
       style={{ aspectRatio: ratio, borderRadius: radius(props.radius ?? "lg") }}
       role={current ? undefined : "img"}
       aria-label={current ? undefined : alt}
@@ -106,15 +124,34 @@ const fit = z.enum(["cover", "contain"]).optional();
 
 export const SearchImage = defineComponent({
   name: "SearchImage",
-  props: z.object({ query: z.string(), aspectRatio: z.number().optional(), radius: radiusSchema.optional(), fit }),
+  props: z.object({
+    query: z.string(),
+    aspectRatio: z.number().optional(),
+    radius: radiusSchema.optional(),
+    fit,
+  }),
   description:
     'A real photo the app finds for query; it needs no URL and no tool. Name the exact thing in 2 to 4 words: "Belém Tower Lisbon", "iPhone 17", "pastel de nata". Use one for every place, dish, product or thing with a look.',
-  component: ({ props }) => <Photo {...props} />,
+  component: ({ props }) => <SearchPhoto {...props} />,
 });
 
 export const Image = defineComponent({
   name: "Image",
-  props: z.object({ src: z.string(), alt: z.string(), aspectRatio: z.number().optional(), radius: radiusSchema.optional(), fit }),
+  props: z.object({
+    src: z.string(),
+    alt: z.string(),
+    aspectRatio: z.number().optional(),
+    radius: radiusSchema.optional(),
+    fit,
+  }),
   description: "Photo from a URL the user or a tool gave; if it fails, a photo is found for alt.",
-  component: ({ props }) => <Photo query={props.alt} src={props.src} aspectRatio={props.aspectRatio} radius={props.radius} fit={props.fit} />,
+  component: ({ props }) => (
+    <SearchPhoto
+      query={props.alt}
+      src={props.src}
+      aspectRatio={props.aspectRatio}
+      radius={props.radius}
+      fit={props.fit}
+    />
+  ),
 });

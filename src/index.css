@@ -8077,3 +8077,27 @@ a.bg-primary:hover,
   animation: ai-shimmer 2.4s linear infinite;
 }
 [dir="rtl"] .thinking-shimmer { animation-name: ai-shimmer-rtl; }
+
+/* Semantic palette for generated mini-sites, independent of legacy HSL tokens. */
+:root {
+  --chat-ui-canvas: oklch(1 0 0);
+  --chat-ui-ink: oklch(0.24 0.006 250);
+  --chat-ui-muted: oklch(0.5 0.014 250);
+  --chat-ui-border: oklch(0.9 0.008 250);
+  --chat-ui-accent: oklch(0.5 0.11 195);
+  --chat-ui-success: oklch(0.46 0.1 155);
+  --chat-ui-warning: oklch(0.53 0.12 75);
+  --chat-ui-danger: oklch(0.53 0.17 25);
+  --chat-ui-shadow: 0 3px 12px oklch(0.2 0 0 / 0.035);
+}
+.dark, [data-theme="dark"] {
+  --chat-ui-canvas: oklch(0.235 0.005 250);
+  --chat-ui-ink: oklch(0.95 0.004 250);
+  --chat-ui-muted: oklch(0.72 0.01 250);
+  --chat-ui-border: oklch(0.36 0.008 250);
+  --chat-ui-accent: oklch(0.78 0.1 185);
+  --chat-ui-success: oklch(0.76 0.12 155);
+  --chat-ui-warning: oklch(0.8 0.12 80);
+  --chat-ui-danger: oklch(0.75 0.13 25);
+  --chat-ui-shadow: 0 3px 12px oklch(0 0 0 / 0.12);
+}
