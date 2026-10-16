@@ -1,0 +1,22 @@
+/* Scope upstream tokens to chat and follow Megsy's existing light/dark tokens. */
+.megsy-openui {
+  --iui-font: inherit;
+  --iui-canvas: hsl(var(--background));
+  --iui-ink: hsl(var(--foreground));
+  --iui-muted: hsl(var(--muted-foreground));
+  --iui-faint: hsl(var(--muted-foreground));
+  --iui-on-ink: hsl(var(--background));
+  --iui-border: hsl(var(--border));
+  --iui-radius-sm: 6px;
+  --iui-radius-md: 8px;
+  --iui-radius-lg: 8px;
+  --iui-radius-xl: 8px;
+  --iui-radius-2xl: 8px;
+  min-width: 0;
+  width: 100%;
+  color: var(--iui-ink);
+}
+.megsy-openui [class*="iui-"] { letter-spacing: 0; }
+.megsy-openui .iui-image { width: 100%; }
+.megsy-openui .iui-image img { width: 100%; height: 100%; max-width: none; }
+.megsy-openui .iui-title, .megsy-openui .iui-button { overflow-wrap: anywhere; }

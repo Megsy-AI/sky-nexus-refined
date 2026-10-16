@@ -159,7 +159,7 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
         {hover !== null && type !== "bar" && <line x1={xAt(hover)} x2={xAt(hover)} y1={pad.top} y2={pad.top + h} className="iui-chart-guide" />}
       </svg>
       {tip && (
-        <div className="iui-chart-tooltip" style={{ left: Math.min(Math.max(xAt(hover!), 70), width - 70), top: pad.top }}>
+        <div className="iui-chart-tooltip" style={{ left: Math.min(Math.max(xAt(hover ?? 0), 70), width - 70), top: pad.top }}>
           <strong>{label(tip, x)}</strong>
           {series.map((s, si) => (
             <span key={s}>

@@ -134,7 +134,10 @@ export const Bucket = defineFunction({
     const label = (start: number) => (unit === "month" ? isoDay(start).slice(0, 7) : isoDay(start));
     const starts = [...byPeriod.keys()].sort((a, b) => a - b);
     const out: { key: string; value: number }[] = [];
-    for (let s = starts[0]!; s <= starts[starts.length - 1]!; s = nextPeriod(s, unit)) {
+    const first = starts[0];
+    const last = starts[starts.length - 1];
+    if (first === undefined || last === undefined) return [];
+    for (let s = first; s <= last; s = nextPeriod(s, unit)) {
       const members = byPeriod.get(s);
       if (members) out.push({ key: label(s), value: aggregate(members, field, mode) });
       else if (fill) out.push({ key: label(s), value: 0 });
@@ -199,7 +202,8 @@ export const Histogram = defineFunction({
     const counts = new Array<number>(n).fill(0);
     for (const v of values) {
       if (v < lo || v > hi) continue;
-      counts[Math.min(n - 1, Math.floor((v - lo) / width))]!++;
+      const index = Math.min(n - 1, Math.floor((v - lo) / width));
+      counts[index] = (counts[index] ?? 0) + 1;
     }
     return counts.map((value, i) => {
       const start = lo + i * width;
@@ -227,9 +231,9 @@ export const Stats = defineFunction({
     const sorted = [...values].sort((a, b) => a - b);
     const mean = values.reduce((a, b) => a + b, 0) / count;
     const mid = Math.floor(count / 2);
-    const median = count % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+    const median = count % 2 ? (sorted[mid] ?? 0) : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
     const stdev = Math.sqrt(values.reduce((a, v) => a + (v - mean) ** 2, 0) / count);
-    return { count, min: sorted[0]!, max: sorted[count - 1]!, mean, median, stdev };
+    return { count, min: (sorted[0] ?? 0), max: (sorted[count - 1] ?? 0), mean, median, stdev };
   },
 });
 
