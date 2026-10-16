@@ -18,8 +18,13 @@ export function specToOpenUI(spec: UISpec): string {
       case 'hero': return col([photo(b.image, b.title), ...(b.tag ? [call('Badge', b.tag, 'info')] : []), call('Title', b.title, 'lg'), ...(b.subtitle ? [call('Text', b.subtitle, 'sm', 'muted')] : [])], 2);
       case 'gallery': return `Carousel([${b.items.map(g => col([photo(g.image, g.caption ?? '', 1.25), call('Caption', g.caption ?? '')], 2)).join(', ')}], 200)`;
       case 'choice':
-        states.push(`${variable} = ${q(b.default ?? (b.multi ? [] : ''))}`);
-        return b.multi ? col([call('Label', b.label), ...b.options.map(o => `Checkbox(@Includes(${variable}, ${q(o)}), ${q(o)}, @Set(${variable}, @Toggle(${variable}, ${q(o)})))`)], 2) : `RadioGroup(${variable}, ${q(b.options)}, ${q(b.label)}, "pills")`;
+        if (b.multi) {
+          const defaults = Array.isArray(b.default) ? b.default : [];
+          b.options.forEach((o, j) => states.push(`${variable}_${j} = ${defaults.includes(o)}`));
+          return col([call('Label', b.label), ...b.options.map((o, j) => `Checkbox(${variable}_${j}, ${q(o)})`)], 2);
+        }
+        states.push(`${variable} = ${q(b.default ?? '')}`);
+        return `RadioGroup(${variable}, ${q(b.options)}, ${q(b.label)}, "pills")`;
       case 'slider': states.push(`${variable} = ${q(b.default ?? Math.round((b.min + b.max) / 2))}`); return `Slider(${variable}, ${b.min}, ${b.max}, ${b.step ?? 1}, ${q(b.label)}, ${q(b.unit)})`;
       case 'number': states.push(`${variable} = ${q(b.default ?? b.min ?? 1)}`); return `Input(${variable}, ${q(b.label)}, "number")`;
       case 'date': states.push(`${variable} = ""`); return `DatePicker(${variable}, ${q(b.label)})`;
@@ -35,7 +40,7 @@ export function specToOpenUI(spec: UISpec): string {
   };
   nodes.push(...spec.blocks.map(block));
   if (spec.submit) {
-    const values = spec.blocks.flatMap((b, i) => 'id' in b ? [`${q(b.label)}: $field${i}`] : []);
+    const values = spec.blocks.flatMap((b, i) => b.type === 'choice' && b.multi ? [`${q(b.label)}: [${b.options.map((o, j) => `$field${i}_${j} ? ${q(o)} : ""`).join(', ')}]`] : 'id' in b ? [`${q(b.label)}: $field${i}`] : []);
     nodes.push(`Button(${q(spec.submit.label)}, @ToAssistant(${q(spec.submit.label)}, {${values.join(', ')}}), "solid", null, "lg", "arrow-right", false, true)`);
   }
   return `root = ${spec.submit ? `Col([Form([${nodes.join(', ')}])], 4)` : col(nodes)}\n${states.join('\n')}`;

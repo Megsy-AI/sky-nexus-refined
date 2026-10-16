@@ -321,6 +321,7 @@ export const Slider = defineComponent({
         <input
           id={id}
           className="iui-range"
+          dir="ltr"
           type="range"
           min={min}
           max={max}
