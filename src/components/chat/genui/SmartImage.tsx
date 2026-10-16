@@ -52,7 +52,7 @@ export function SmartImage({ src, query, className = "", alt = "" }: { src?: str
     <div className={`relative overflow-hidden bg-gradient-to-br from-primary/25 via-muted to-accent/30 ${className}`}>
       {!loaded && url !== null && <div className="absolute inset-0 animate-pulse bg-foreground/[0.06]" />}
       {url && (
-        <img src={url} alt={alt} loading="lazy" onLoad={() => setLoaded(true)} onError={onError}
+        <img src={url} alt={alt} loading="lazy" onLoad={() => setLoaded(true)} onError={onError} style={{ width: "100%", height: "100%", maxWidth: "none" }}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`} />
       )}
       {url === null && alt && (

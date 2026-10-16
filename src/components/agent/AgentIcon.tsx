@@ -3,9 +3,8 @@
  * the icons actually on screen are downloaded. Agents with no published logo —
  * starting with Megsy itself — get the robot. */
 import { lazy, Suspense, useMemo, type ComponentType } from "react";
-import { Clapperboard, Sparkles } from "lucide-react";
+import { Bot, Clapperboard, Cpu } from "lucide-react";
 import type { AgentColor, AgentInfo } from "@/lib/agentsky/client";
-import { AgentOrb } from "./AgentOrb";
 import higgsfieldLogo from "@/assets/higgsfield-logo.png";
 
 type IconModule = { default: ComponentType<any> & { Color?: ComponentType<any> } };
@@ -157,8 +156,8 @@ function lazyBrand(key: string) {
 /** Megsy's own mark. It belongs to the main agent alone, so every other
  *  logo-less agent gets its own generic mark instead of borrowing it. */
 /** Megsy's own mark: the same orb creature the chat page greets you with. */
-export function MegsyMark({ color = "aurora", size = 28, className }: { color?: AgentColor; size?: number; className?: string }) {
-  return <AgentOrb color={color} size={size} state="idle" className={className} />;
+export function MegsyMark({ size = 28, className }: { color?: AgentColor; size?: number; className?: string }) {
+  return <Bot className={className} width={size} height={size} strokeWidth={1.8} aria-hidden />;
 }
 
 /** Higgsfield's published app mark. */
@@ -180,7 +179,7 @@ const GenericMark = ({ kind, size, className }: { kind: "media" | "agent"; size:
   kind === "media" ? (
     <Clapperboard className={className} width={size} height={size} strokeWidth={1.7} aria-hidden />
   ) : (
-    <Sparkles className={className} width={size} height={size} strokeWidth={1.7} aria-hidden />
+    <Cpu className={className} width={size} height={size} strokeWidth={1.7} aria-hidden />
   );
 
 export function AgentIcon({ agent, size = 23, className }: { agent: AgentInfo; size?: number; className?: string }) {
@@ -190,7 +189,7 @@ export function AgentIcon({ agent, size = 23, className }: { agent: AgentInfo; s
   );
   const kind = agent.mediaOnly ? "media" : "agent";
   const fallback = agent.isDefault ? (
-    <MegsyMark color={agent.color} size={size + 5} className={className} />
+    <MegsyMark size={size} className={className} />
   ) : (
     <GenericMark kind={kind} size={size - 3} className={className} />
   );
