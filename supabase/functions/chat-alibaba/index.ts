@@ -27,6 +27,7 @@ const headers = {
 // Browsing/computer work runs on Browser Use Cloud. No other AI provider is used.
 import { AGENT_MODEL, callAgentFallback } from "../_shared/agentFallback.ts";
 import { callModel, MODELS, resolveModel } from "../_shared/abliteration.ts";
+import { GENUI_PROMPT } from "../_shared/genui.ts";
 
 
 const SYSTEM = `You are MEGSY, an autonomous general-purpose AI agent.
@@ -367,6 +368,7 @@ Deno.serve(async (req) => {
 
         const system = [
           SYSTEM,
+          GENUI_PROMPT,
           memoryBlock,
           profileSystem(profile),
           personaBlock,

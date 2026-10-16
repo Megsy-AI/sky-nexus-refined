@@ -39,6 +39,7 @@ import ThinkingLoader from "./ThinkingLoader";
 import { type ParallelAgentTask } from "./ParallelAgentsPanel";
 import { detectLang, langDir } from "@/lib/detectLang";
 import { useUserLang } from "@/lib/authI18n";
+import { wrapBareUISpecs } from "@/components/chat/genui/schema";
 import { parseLearnSegments, hasLearnCards } from "@/lib/learnCardParser";
 import { parseConnectSegments, hasConnectCards } from "@/lib/chat/connectCardParser";
 import { useSmoothText } from "@/hooks/useSmoothText";
@@ -1085,7 +1086,7 @@ const ChatMessage = ({
     // Final render-time guard: no assistant text may claim a plan / paid status,
     // regardless of which pipeline (chat, long-run, replay) produced it.
     return {
-      displayContent: sanitizeLeakedToolText(stripPlanClaims(normalized.cleaned)),
+      displayContent: wrapBareUISpecs(sanitizeLeakedToolText(stripPlanClaims(normalized.cleaned))),
       inlineImages: normalized.extractedImages,
     };
   }, [content, role]);
@@ -1094,6 +1095,7 @@ const ChatMessage = ({
   // so streamed tokens feel like ChatGPT/Claude instead of arriving in chunks.
   const displayContent = useSmoothText(rawDisplayContent, role === "assistant" && !!isStreaming);
   const learnRenderContent = role === "assistant" ? rawDisplayContent : displayContent;
+  if (typeof window !== "undefined" && role === "assistant") { if (!isStreaming && content.includes("blocks")) console.error("DBGMSG" + JSON.stringify(content)); } // DBG
   const hasLearnCardContent = role === "assistant" && hasLearnCards(learnRenderContent);
   const hasConnectCardContent = role === "assistant" && hasConnectCards(learnRenderContent);
 
