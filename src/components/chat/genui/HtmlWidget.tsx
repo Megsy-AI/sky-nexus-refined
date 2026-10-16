@@ -7,7 +7,7 @@ import { GenUIActionContext } from "./GenUIBlock";
 
 const BASE_CSS = `
 :root{--bg:#ffffff;--fg:#141414;--muted:#6b6b6b;--line:#e8e8e6;--soft:#f5f5f3;--accent:#141414;--accent-fg:#fff;--good:#1f9d55;--warn:#d97706;--bad:#dc2626;--info:#2563eb;--r:18px}
-@media (prefers-color-scheme:dark){:root{--bg:#1b1b1b;--fg:#f2f2f0;--muted:#a3a3a0;--line:#2e2e2c;--soft:#242422;--accent:#f2f2f0;--accent-fg:#141414}}
+html.dark{--bg:#1b1b1b;--fg:#f2f2f0;--muted:#a3a3a0;--line:#2e2e2c;--soft:#242422;--accent:#f2f2f0;--accent-fg:#141414}
 *{box-sizing:border-box;margin:0}
 html,body{background:transparent;color:var(--fg);font:14px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","IBM Plex Sans Arabic",Tahoma,sans-serif;-webkit-font-smoothing:antialiased}
 body{padding:2px}
@@ -56,9 +56,14 @@ export function HtmlWidget({ html, done }: { html: string; done: boolean }) {
     return () => window.removeEventListener("message", on);
   }, [onSend]);
 
+  const dark = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const m = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g);
+    return m ? (Number(m[0]) + Number(m[1]) + Number(m[2])) / 3 < 110 : false;
+  }, []);
   const doc = useMemo(
-    () => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${BASE_CSS}</style></head><body dir="auto">${html}${BRIDGE}</body></html>`,
-    [html],
+    () => `<!doctype html><html class="${dark ? "dark" : ""}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${BASE_CSS}</style></head><body dir="auto">${html}${BRIDGE}</body></html>`,
+    [html, dark],
   );
 
   if (!done) {
