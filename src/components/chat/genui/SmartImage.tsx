@@ -24,8 +24,11 @@ async function lookup(q: string): Promise<string | null> {
 
 export function resolveImage(q: string) {
   const key = q.trim().toLowerCase();
-  if (!cache.has(key)) cache.set(key, lookup(q.trim()));
-  return cache.get(key)!;
+  const existing = cache.get(key);
+  if (existing) return existing;
+  const request = lookup(q.trim());
+  cache.set(key, request);
+  return request;
 }
 
 export function SmartImage({ src, query, className = "", alt = "" }: { src?: string; query?: string; className?: string; alt?: string }) {
