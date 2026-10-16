@@ -1,4 +1,6 @@
 # Roadmap
+- [ ] Expand OpenUI place, hotel, menu and appointment cards, enable map instructions and refine light/dark colors
+- [ ] Verify new card interactions, searched photos and maps on desktop and mobile
 - [x] Deploy latest chat UI to existing Vercel production project and verify all three public domains (READY; HTTP 200; published welcome page renders without runtime errors)
 - [x] Use Open Intelligent UI inside chat while preserving searched images and interactive replies (11 tests; photo + selection + submit verified in browser)
 - [ ] Verify a live authenticated model reply end-to-end — blocked: external unmanaged auth has no available managed browser session

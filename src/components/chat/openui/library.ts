@@ -5,6 +5,7 @@ import "./components/theme.css";
 import "./components/components.css";
 import "./components/map/map.css";
 import { Chart } from "./components/chart";
+import { PlaceCard, MenuItem, ScheduleItem } from "./components/destinations";
 import { Carousel, Celebration, Code, Flashcard, MathBlock, Popover, Quote, YouTube } from "./components/extra";
 import {
   Button,
@@ -41,7 +42,7 @@ export const library = createLibrary({
     Title, Text, Caption, Label, Badge, Link, List, ListItem, Markdown, Quote, Code, MathBlock,
     Button, IconButton, Pressable, Input, TextArea, Select, SegmentedControl, Slider, Checkbox, RadioGroup, DatePicker, Timer, Form,
     SearchImage, Image, Icon, Table, Chart, MapView, MapMarker, YouTube,
-    Flashcard, Celebration,
+    Flashcard, Celebration, PlaceCard, MenuItem, ScheduleItem,
     ...svgComponents, HtmlView,
   ],
   functions,
@@ -66,6 +67,7 @@ export const library = createLibrary({
     },
     { name: "Media and data", components: ["SearchImage", "Image", "Icon", "Table", "Chart", "Map", "MapMarker", "YouTube"] },
     { name: "Play", components: ["Flashcard", "Celebration"] },
+    { name: "Places and plans", components: ["PlaceCard", "MenuItem", "ScheduleItem"], notes: ["Use real searched details; do not imply bookings or availability without a verified result."] },
     { name: "Drawing", components: ["Svg", "G", "Circle", "Ellipse", "Rect", "Line", "Path", "Polyline", "Polygon", "SvgText", "HtmlView"] },
   ],
 });
