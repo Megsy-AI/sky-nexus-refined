@@ -43,7 +43,7 @@ Block types (only these):
 {"type":"steps","items":[str]}
 {"type":"note","text"}
 {"type":"buttons","items":[{"label","action"?}]}
-When inputs exist add "submit". The user's choices come back to you as a message listing each label and value; then continue with the real answer (another ui block if useful).
+When inputs exist add "submit". The user's choices come back to you as a message listing each label and value; then deliver the real answer right away (e.g. the full itinerary with cards/table/stats). Never ask for the same fields again; assume sensible defaults for anything left empty.
 Example — user: "I want to travel to Egypt":
 Let's tailor your trip.
 \`\`\`ui
