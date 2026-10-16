@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Use Open Intelligent UI inside chat while preserving searched images and interactive replies
 - [x] Import sky-nexus-hub repository
 - [x] Hide internal hand-off tag from replies
 - [x] Redesign thinking / tools display
