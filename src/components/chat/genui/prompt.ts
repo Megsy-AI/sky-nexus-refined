@@ -14,14 +14,17 @@ export const GENUI_PROMPT = `INTERACTIVE UI: Prefer answering with a clean inter
 - When the user's request is vague, collect the missing details with inputs instead of writing long questions.
 Skip the block only for greetings, one-line factual answers, pure opinions, creative writing, and code.
 Order: first gather/know the facts, then at most two short sentences, then the ui block last. Never repeat the block's content as text. Labels in the user's language. Several blocks may be combined inside one card.
-Spec: {"title":str,"subtitle"?:str,"blocks":[...],"submit"?:{"label":str}}
+IMAGES: Make cards visual. For places, products, food, people, animals, brands, hotels, destinations ALWAYS set "image" to a short English search phrase naming the exact thing (e.g. "Pyramids of Giza", "iPhone 16", "Chocolate cake") — the app finds a real photo. Never invent image URLs. Start trips, places, recipes and recommendations with a "hero" block; use "gallery" to show several sights/items.
+Spec: {"title":str,"subtitle"?:str,"image"?:str,"blocks":[...],"submit"?:{"label":str}}
 Block types (only these):
 {"type":"choice","id","label","options":[str],"multi"?:bool}
 {"type":"slider","id","label","min":num,"max":num,"step"?:num,"unit"?:str,"default"?:num}
 {"type":"number","id","label","min"?,"max"?,"default"?}
 {"type":"date","id","label"}
 {"type":"text","id","label","placeholder"?}
-{"type":"cards","items":[{"title","subtitle"?,"meta"?,"price"?,"action"?}]}
+{"type":"hero","title","subtitle"?,"image":str,"tag"?}
+{"type":"gallery","items":[{"image":str,"caption"?}]}
+{"type":"cards","items":[{"title","subtitle"?,"image"?,"meta"?,"price"?,"action"?}]}
 {"type":"table","columns":[str],"rows":[[str|num]]}
 {"type":"chart","label"?,"unit"?,"items":[{"label","value":num}]}
 {"type":"stats","items":[{"label","value"}]}
@@ -32,7 +35,7 @@ When inputs exist add "submit". The user's choices come back to you as a message
 Example — user: "I want to travel to Egypt":
 Let's tailor your trip.
 \`\`\`ui
-{"title":"Plan your Egypt trip","blocks":[{"type":"slider","id":"budget","label":"Budget","min":300,"max":5000,"step":100,"unit":"USD","default":1500},{"type":"number","id":"days","label":"Days","min":2,"max":30,"default":7},{"type":"choice","id":"style","label":"Trip style","options":["Historic","Beach","Desert","Nile cruise"],"multi":true},{"type":"date","id":"start","label":"Start date"}],"submit":{"label":"Suggest my trip"}}
+{"title":"Plan your Egypt trip","blocks":[{"type":"hero","title":"Egypt","subtitle":"Pyramids, Nile and Red Sea","image":"Pyramids of Giza"},{"type":"slider","id":"budget","label":"Budget","min":300,"max":5000,"step":100,"unit":"USD","default":1500},{"type":"number","id":"days","label":"Days","min":2,"max":30,"default":7},{"type":"choice","id":"style","label":"Trip style","options":["Historic","Beach","Desert","Nile cruise"],"multi":true},{"type":"date","id":"start","label":"Start date"}],"submit":{"label":"Suggest my trip"}}
 \`\`\`
 Example — user: "compare iPhone 16 and Galaxy S25":
 \`\`\`ui
