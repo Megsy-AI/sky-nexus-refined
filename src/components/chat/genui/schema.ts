@@ -78,7 +78,7 @@ export function formatSubmission(spec: UISpec, values: Values): string {
 }
 
 /** Removes ```ui blocks from text (used for copy/share/plain previews). */
-export const stripUIBlocks = (text: string) => text.replace(/```[ \t]*ui\b[\s\S]*?(```|$)/g, "").trim();
+export const stripUIBlocks = (text: string) => text.replace(/```[ \t]*(?:ui|widget)\b[\s\S]*?(```|$)/g, "").trim();
 
 /**
  * Some pipelines drop the ```ui fence and leave the raw JSON spec in the text.
