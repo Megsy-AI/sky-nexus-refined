@@ -1095,7 +1095,6 @@ const ChatMessage = ({
   // so streamed tokens feel like ChatGPT/Claude instead of arriving in chunks.
   const displayContent = useSmoothText(rawDisplayContent, role === "assistant" && !!isStreaming);
   const learnRenderContent = role === "assistant" ? rawDisplayContent : displayContent;
-  if (typeof window !== "undefined" && role === "assistant") { if (!isStreaming && content.includes("blocks")) (window as any).__dbgMsg = content; } // DBG
   const hasLearnCardContent = role === "assistant" && hasLearnCards(learnRenderContent);
   const hasConnectCardContent = role === "assistant" && hasConnectCards(learnRenderContent);
 
