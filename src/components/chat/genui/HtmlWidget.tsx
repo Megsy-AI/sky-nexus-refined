@@ -37,9 +37,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:start;fon
 const BRIDGE = `<script>
 window.megsy={send:function(t){parent.postMessage({__megsy:'send',text:String(t)},'*')}};
 document.addEventListener('click',function(e){var el=e.target.closest('[data-send]');if(el){e.preventDefault();megsy.send(el.getAttribute('data-send')||el.textContent.trim())}});
-function __h(){parent.postMessage({__megsy:'h',id:window.name,h:document.documentElement.scrollHeight},'*')}
+function __h(){parent.postMessage({__megsy:'h',id:window.name,h:Math.ceil(document.body.getBoundingClientRect().height)+8},'*')}
 document.querySelectorAll('img[data-q]').forEach(function(im){fetch('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=3&prop=pageimages&piprop=thumbnail&pithumbsize=800&gsrsearch='+encodeURIComponent(im.getAttribute('data-q'))).then(function(r){return r.json()}).then(function(j){var p=Object.values((j.query||{}).pages||{}).sort(function(a,b){return a.index-b.index}).find(function(x){return x.thumbnail});if(p){im.src=p.thumbnail.source}}).catch(function(){})});
-new ResizeObserver(__h).observe(document.documentElement);addEventListener('load',__h);
+new ResizeObserver(__h).observe(document.body);addEventListener('load',__h);document.addEventListener('load',__h,true);setTimeout(__h,50);
 </script>`;
 
 export function HtmlWidget({ html, done }: { html: string; done: boolean }) {
