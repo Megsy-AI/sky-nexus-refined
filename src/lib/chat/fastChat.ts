@@ -118,6 +118,7 @@ export async function tryFastChat({
   const proxyBody = JSON.stringify({
     messages,
     lane: "fast",
+    ...(force ? { force: true } : {}),
     thinking: thinking === true,
     ...(requestedMaxTokens ? { maxTokens: requestedMaxTokens } : {}),
     ...(routingContext ? { routingContext } : {}),
