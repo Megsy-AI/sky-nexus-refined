@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useWorkspaceStore, loadWorkspace } from "@/lib/agentsky/store";
 import { AGENT_ROSTER_STORAGE_KEY } from "@/lib/agentsky/rosterSettings";
-import { AgentIcon } from "@/components/agent/AgentIcon";
+import { AgentIcon, agentBrandKey } from "@/components/agent/AgentIcon";
 import { MegsyMark } from "@/components/agent/AgentIcon";
 import ServiceIcon from "@/components/chat/ServiceIcon";
 import ProfileGlassShell, { GlassCard, GlassSection } from "@/components/profile/ProfileGlassShell";
@@ -210,7 +210,7 @@ export default function AgentSelectionPage() {
                   {/* Each specialist gets its own craft icon; brand logos still
                       win when the agent names a known model/provider. */}
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-muted/60">
-                    <SpecialistMark name={`${agent.name} ${agent.description || ""}`} mediaOnly={agent.mediaOnly} />
+                    {agentBrandKey(agent) ? <AgentIcon agent={agent} size={26} /> : <SpecialistMark name={`${agent.name} ${agent.description || ""}`} mediaOnly={agent.mediaOnly} />}
                   </span>
                   <div className="min-w-0 flex-1">
                     <strong className="block truncate">{agent.name}</strong>
