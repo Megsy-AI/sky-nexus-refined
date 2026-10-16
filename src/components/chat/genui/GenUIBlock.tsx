@@ -27,7 +27,7 @@ export function GenUIBlock({ source }: { source: string }) {
 
   if (!spec) {
     return (
-      <GlassWidget className="my-3 p-4" aria-busy>
+      <GlassWidget className="my-3 p-4">
         <div className="h-3.5 w-1/3 animate-pulse rounded-full bg-foreground/10" />
         <div className="mt-4 h-9 animate-pulse rounded-xl bg-foreground/[0.06]" />
         <div className="mt-2 h-9 w-2/3 animate-pulse rounded-xl bg-foreground/[0.06]" />

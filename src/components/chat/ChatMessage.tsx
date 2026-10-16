@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { m as motion, AnimatePresence } from "framer-motion";
 import MegsyStarBrand from "@/components/branding/MegsyStar";
 import ReactMarkdown from "react-markdown";
+import { GenUIBlock, GenUIActionContext } from "@/components/chat/genui/GenUIBlock";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import remarkMath from "remark-math";
@@ -533,6 +534,8 @@ const MarkdownRenderer = ({
         if (isBlock && lang && ["learn", "learn_card", "cards", "json"].includes(lang)) {
           return null;
         }
+
+        if (isBlock && lang === "ui") return <GenUIBlock source={codeStr} />;
 
         if (isBlock && lang === "mermaid") {
           return (
@@ -1548,6 +1551,7 @@ const ChatMessage = ({
   const hasRunningTool = !!toolParts?.some((part) => part.state === "running");
 
   return (
+    <GenUIActionContext.Provider value={onStructuredAction}>
     <Message
       aria-live={role === "assistant" && isStreaming ? "polite" : undefined}
       aria-busy={role === "assistant" && isStreaming ? true : undefined}
@@ -2231,6 +2235,7 @@ const ChatMessage = ({
         </Suspense>
       </MessageContent>
     </Message>
+    </GenUIActionContext.Provider>
   );
 };
 
