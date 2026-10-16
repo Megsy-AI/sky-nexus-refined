@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Generative UI: chat models answer with a ```ui JSON block validated by src/components/chat/genui/schema.ts and rendered by GenUIBlock; the prompt lives in genui/prompt.ts and is copied into supabase/functions/_shared/genui.ts (used by chat-fast and chat-alibaba; Deno cannot import src) — keep both in sync. ui blocks render outside the markdown pipeline so math/sanitize plugins cannot break them.
+- Chat HTML widgets: ```widget blocks render in a sandboxed iframe (allow-scripts only) via genui/HtmlWidget.tsx with a built-in stylesheet; replies go back through megsy.send/postMessage. Why: rich model-drawn UI without access to the app session.

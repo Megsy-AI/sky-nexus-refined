@@ -25,6 +25,7 @@ import { m as motion, AnimatePresence } from "framer-motion";
 import MegsyStarBrand from "@/components/branding/MegsyStar";
 import ReactMarkdown from "react-markdown";
 import { GenUIBlock, GenUIActionContext } from "@/components/chat/genui/GenUIBlock";
+import { HtmlWidget } from "@/components/chat/genui/HtmlWidget";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import remarkMath from "remark-math";
@@ -468,13 +469,14 @@ const MarkdownRenderer = (props: {
   onLinkClick: (e: React.MouseEvent<HTMLAnchorElement>, href: string) => void;
   onPreviewCode?: (code: string, lang: string) => void;
 }) => {
-  const parts = props.content.split(/(```[ \t]*ui\b[^\n]*\n[\s\S]*?(?:```|$))/g);
+  const parts = props.content.split(/(```[ \t]*(?:ui|widget)\b[^\n]*\n[\s\S]*?(?:```|$))/g);
   if (parts.length === 1) return <MarkdownTextRenderer {...props} />;
   return (
     <>
       {parts.map((part, i) => {
-        const m = /^```[ \t]*ui\b[^\n]*\n([\s\S]*?)(?:```)?$/.exec(part);
-        if (m) return <GenUIBlock key={i} source={m[1]} />;
+        const m = /^```[ \t]*(ui|widget)\b[^\n]*\n([\s\S]*?)(```)?$/.exec(part);
+        if (m && m[1] === "widget") return <HtmlWidget key={i} html={m[2]} done={!!m[3]} />;
+        if (m) return <GenUIBlock key={i} source={m[2]} />;
         return part.trim() ? <MarkdownTextRenderer key={i} {...props} content={part} /> : null;
       })}
     </>

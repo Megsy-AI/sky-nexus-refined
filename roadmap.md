@@ -8,3 +8,6 @@
 - [ ] Chat brain capacity — blocked: only 1 active Cerebras key, hitting per-minute limit; user adds keys
 - [ ] AgentSky "not configured" — to investigate next
 - [x] Agents page: real brand icons, robot for Megsy
+- [x] Chat renders clean HTML widgets (sandboxed)
+- [x] Agents page: truly real brand icons; Megsy = chat home robot
+- [x] Thinking label changes per live state with shimmer
