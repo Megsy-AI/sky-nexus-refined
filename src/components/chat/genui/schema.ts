@@ -21,13 +21,15 @@ export const BLOCKS = {
   chart: z.object({ type: z.literal("chart"), label: opt, unit: opt, items: z.array(z.object({ label: str, value: z.number() })).min(1).max(12) }),
   stats: z.object({ type: z.literal("stats"), items: z.array(z.object({ label: str, value: z.union([z.string(), z.number()]) })).min(1).max(6) }),
   steps: z.object({ type: z.literal("steps"), items: z.array(str).min(1).max(12) }),
+  hero: z.object({ type: z.literal("hero"), title: str, subtitle: opt, image: str, tag: opt }),
+  gallery: z.object({ type: z.literal("gallery"), items: z.array(z.object({ image: str, caption: opt })).min(1).max(8) }),
   note: z.object({ type: z.literal("note"), text: str }),
   buttons: z.object({ type: z.literal("buttons"), items: z.array(z.object({ label: str, action: opt })).min(1).max(6) }),
 } as const;
 
 export type BlockType = keyof typeof BLOCKS;
 export type Block = { [K in BlockType]: z.infer<(typeof BLOCKS)[K]> }[BlockType];
-export type UISpec = { title?: string; subtitle?: string; blocks: Block[]; submit?: { label: string } };
+export type UISpec = { title?: string; subtitle?: string; image?: string; blocks: Block[]; submit?: { label: string } };
 
 const INPUTS = new Set(["choice", "slider", "number", "date", "text"]);
 export const isInput = (b: Block) => INPUTS.has(b.type);
@@ -54,6 +56,7 @@ export function parseUISpec(source: string): UISpec | null {
   return {
     title: s(raw.title),
     subtitle: s(raw.subtitle),
+    image: s(raw.image),
     blocks,
     submit: hasInputs ? { label: submitLabel ?? "Continue" } : undefined,
   };
