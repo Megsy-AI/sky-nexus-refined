@@ -39,6 +39,7 @@ import ThinkingLoader from "./ThinkingLoader";
 import { type ParallelAgentTask } from "./ParallelAgentsPanel";
 import { detectLang, langDir } from "@/lib/detectLang";
 import { useUserLang } from "@/lib/authI18n";
+import { wrapBareUISpecs } from "@/components/chat/genui/schema";
 import { parseLearnSegments, hasLearnCards } from "@/lib/learnCardParser";
 import { parseConnectSegments, hasConnectCards } from "@/lib/chat/connectCardParser";
 import { useSmoothText } from "@/hooks/useSmoothText";
@@ -460,7 +461,27 @@ const cleanLearnSegmentText = (text: string) =>
 const stripLearnBlocks = (text: string) => text.replace(LEARN_FENCE_OPEN_G, "").trim();
 
 
-const MarkdownRenderer = ({
+/** Splits out ```ui blocks so they render as cards outside the markdown
+ *  pipeline (math/sanitize plugins can otherwise break their JSON). */
+const MarkdownRenderer = (props: {
+  content: string;
+  onLinkClick: (e: React.MouseEvent<HTMLAnchorElement>, href: string) => void;
+  onPreviewCode?: (code: string, lang: string) => void;
+}) => {
+  const parts = props.content.split(/(```[ \t]*ui\b[^\n]*\n[\s\S]*?(?:```|$))/g);
+  if (parts.length === 1) return <MarkdownTextRenderer {...props} />;
+  return (
+    <>
+      {parts.map((part, i) => {
+        const m = /^```[ \t]*ui\b[^\n]*\n([\s\S]*?)(?:```)?$/.exec(part);
+        if (m) return <GenUIBlock key={i} source={m[1]} />;
+        return part.trim() ? <MarkdownTextRenderer key={i} {...props} content={part} /> : null;
+      })}
+    </>
+  );
+};
+
+const MarkdownTextRenderer = ({
   content,
   onLinkClick,
   onPreviewCode,
@@ -1085,7 +1106,7 @@ const ChatMessage = ({
     // Final render-time guard: no assistant text may claim a plan / paid status,
     // regardless of which pipeline (chat, long-run, replay) produced it.
     return {
-      displayContent: sanitizeLeakedToolText(stripPlanClaims(normalized.cleaned)),
+      displayContent: wrapBareUISpecs(sanitizeLeakedToolText(stripPlanClaims(normalized.cleaned))),
       inlineImages: normalized.extractedImages,
     };
   }, [content, role]);

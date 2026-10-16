@@ -28,3 +28,18 @@ describe("generative UI spec", () => {
     expect(stripUIBlocks("Hi\n```ui\n{}\n```")).toBe("Hi");
   });
 });
+
+import { wrapBareUISpecs } from "./schema";
+describe("wrapBareUISpecs", () => {
+  it("re-wraps a bare spec in a ui fence", () => {
+    const t = 'Hi\n{\n "title": "T",\n "blocks": [{"type":"note","text":"a {b}"}]\n}\nbye';
+    expect(wrapBareUISpecs(t)).toContain('```ui\n{\n "title": "T"');
+  });
+  it("leaves fenced specs and other json alone", () => {
+    const t = '```ui\n{"title":"T","blocks":[]}\n```\n{"a":1}';
+    expect(wrapBareUISpecs(t)).toBe(t);
+  });
+  it("closes an unclosed ui fence", () => {
+    expect(wrapBareUISpecs('```ui\n{"title":"T","blocks":[]}\n')).toBe('```ui\n{"title":"T","blocks":[]}\n```');
+  });
+});

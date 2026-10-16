@@ -76,3 +76,45 @@ export function formatSubmission(spec: UISpec, values: Values): string {
 
 /** Removes ```ui blocks from text (used for copy/share/plain previews). */
 export const stripUIBlocks = (text: string) => text.replace(/```[ \t]*ui\b[\s\S]*?(```|$)/g, "").trim();
+
+/**
+ * Some pipelines drop the ```ui fence and leave the raw JSON spec in the text.
+ * Re-wrap any bare top-level JSON object that looks like a UI spec
+ * (has a "blocks" array) so it still renders as a card.
+ */
+export function wrapBareUISpecs(input: string): string {
+  if (!input.includes('"blocks"')) return input;
+  // Close a trailing ```ui fence the model forgot to close.
+  let text = input;
+  const fenceCount = (text.match(/```/g) || []).length;
+  if (fenceCount % 2 === 1 && /```[ \t]*ui\b[^`]*$/.test(text)) text = text.replace(/\s*$/, "\n```");
+  const fences: Array<[number, number]> = [];
+  text.replace(/```[\s\S]*?(```|$)/g, (m, _e, off: number) => (fences.push([off, off + m.length]), m));
+  const inFence = (i: number) => fences.some(([a, b]) => i >= a && i < b);
+  let out = "";
+  let i = 0;
+  while (i < text.length) {
+    const start = text.indexOf("{", i);
+    if (start < 0 || inFence(start)) {
+      if (start < 0) break;
+      out += text.slice(i, start + 1);
+      i = start + 1;
+      continue;
+    }
+    let depth = 0, end = -1, inStr = false, esc = false;
+    for (let j = start; j < text.length; j++) {
+      const c = text[j];
+      if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') inStr = true;
+      else if (c === "{") depth++;
+      else if (c === "}" && --depth === 0) { end = j; break; }
+    }
+    if (end < 0) break;
+    const chunk = text.slice(start, end + 1);
+    let ok = false;
+    try { const o = JSON.parse(chunk); ok = !!o && Array.isArray(o.blocks); } catch { /* not json */ }
+    out += text.slice(i, start) + (ok ? "\n```ui\n" + chunk + "\n```\n" : chunk);
+    i = end + 1;
+  }
+  return out + text.slice(i);
+}
