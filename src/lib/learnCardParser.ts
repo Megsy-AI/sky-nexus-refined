@@ -330,7 +330,10 @@ function pushTextWithBareCards(segments: LearnSegment[], text: string) {
   }
 }
 
-export function hasLearnCards(content: string): boolean {
+export function hasLearnCards(raw: string): boolean {
+  // Interactive ```ui blocks are rendered by the generative-UI renderer and
+  // may contain "options" too — never mistake them for learn cards.
+  const content = raw.replace(/```[ \t]*ui\b[\s\S]*?(```|$)/g, "");
   if (/```(learn|learn_card)\s/.test(content)) return true;
   // Quick heuristic: contains a JSON-like { ... "options": [ ... ] }
   if (/\{[\s\S]*?"options"\s*:\s*\[[\s\S]*?\][\s\S]*?\}/.test(content)) return true;
