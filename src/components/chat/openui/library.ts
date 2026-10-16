@@ -70,5 +70,3 @@ export const library = createLibrary({
   ],
 });
 
-// Prompt generation shares the same component catalogue.
-export { dashboardPromptOptions, promptOptions } from "./prompt-options";
