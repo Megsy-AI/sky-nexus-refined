@@ -185,7 +185,7 @@ export const MapView = defineComponent({
           });
           // Anchor the pin's centre (not the label below it) on the coordinate.
           const currentMap = map.current;
-          if (!currentMap) continue;
+          if (!currentMap) return;
           const marker = new lib.Marker({ element: pinElement.element, anchor: "top", offset: [0, -17] }).setLngLat(lngLat([place.lat, place.lng])).addTo(currentMap);
           entry = { marker, ...pinElement };
           markers.current.set(place.key, entry);
