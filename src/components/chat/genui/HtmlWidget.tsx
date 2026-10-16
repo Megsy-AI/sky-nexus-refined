@@ -39,7 +39,7 @@ window.megsy={send:function(t){parent.postMessage({__megsy:'send',text:String(t)
 document.addEventListener('click',function(e){var el=e.target.closest('[data-send]');if(el){e.preventDefault();megsy.send(el.getAttribute('data-send')||el.textContent.trim())}});
 function __h(){parent.postMessage({__megsy:'h',id:window.name,h:Math.ceil(document.body.getBoundingClientRect().height)+8},'*')}
 document.querySelectorAll('img[data-q]').forEach(function(im){fetch('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=3&prop=pageimages&piprop=thumbnail&pithumbsize=800&gsrsearch='+encodeURIComponent(im.getAttribute('data-q'))).then(function(r){return r.json()}).then(function(j){var p=Object.values((j.query||{}).pages||{}).sort(function(a,b){return a.index-b.index}).find(function(x){return x.thumbnail});if(p){im.src=p.thumbnail.source}}).catch(function(){})});
-new ResizeObserver(__h).observe(document.body);addEventListener('load',__h);document.addEventListener('load',__h,true);setTimeout(__h,50);
+new ResizeObserver(__h).observe(document.body);addEventListener('load',__h);document.addEventListener('load',__h,true);[50,300,1000,2500].forEach(function(t){setTimeout(__h,t)});
 </script>`;
 
 export function HtmlWidget({ html, done }: { html: string; done: boolean }) {
@@ -47,6 +47,8 @@ export function HtmlWidget({ html, done }: { html: string; done: boolean }) {
   const ref = useRef<HTMLIFrameElement>(null);
   const id = useMemo(() => `w${Math.random().toString(36).slice(2)}`, []);
   const [h, setH] = useState(120);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const on = (e: MessageEvent) => {
@@ -68,7 +70,7 @@ export function HtmlWidget({ html, done }: { html: string; done: boolean }) {
     [html, dark],
   );
 
-  if (!done) {
+  if (!done || !mounted) {
     return <div className="my-4 h-40 animate-pulse rounded-3xl border border-border/60 bg-muted/40" />;
   }
   return (
