@@ -13,6 +13,7 @@ html,body{background:transparent;color:var(--fg);font:14px/1.55 -apple-system,Bl
 body{padding:2px}
 h1,h2,h3{letter-spacing:-.01em;line-height:1.25}h1{font-size:22px}h2{font-size:18px}h3{font-size:15px}
 p{color:var(--muted)}
+ul,ol{padding-inline-start:20px;color:var(--fg)}li+li{margin-top:4px}li::marker{color:var(--muted)}
 img{max-width:100%;background:var(--soft);display:block;border-radius:14px;object-fit:cover}
 .card{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 30px -14px rgba(0,0,0,.18)}
 .grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
