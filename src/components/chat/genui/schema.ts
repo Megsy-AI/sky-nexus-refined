@@ -75,4 +75,4 @@ export function formatSubmission(spec: UISpec, values: Values): string {
 }
 
 /** Removes ```ui blocks from text (used for copy/share/plain previews). */
-export const stripUIBlocks = (text: string) => text.replace(/```ui\s*\n[\s\S]*?(```|$)/g, "").trim();
+export const stripUIBlocks = (text: string) => text.replace(/```[ \t]*ui\b[\s\S]*?(```|$)/g, "").trim();
