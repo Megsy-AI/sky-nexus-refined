@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Preserve and verify searched phone and food images in generated answers
 - [ ] Expand OpenUI place, hotel, menu and appointment cards, enable map instructions and refine light/dark colors
 - [ ] Verify new card interactions, searched photos and maps on desktop and mobile
 - [x] Deploy latest chat UI to existing Vercel production project and verify all three public domains (READY; HTTP 200; published welcome page renders without runtime errors)
