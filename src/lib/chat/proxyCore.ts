@@ -8,6 +8,7 @@
  * straight back, so the existing chat client needs no new parsing.
  */
 
+import { GENUI_PROMPT } from "@/components/chat/genui/prompt";
 import {
   getAbliterationKeys,
   markAbliterationFailure,
@@ -172,7 +173,11 @@ export async function streamChatProxy(
 
   const model = resolveUpstreamModel(payload?.model, payload?.lane);
 
-  const system = [SYSTEM, typeof payload?.customSystem === "string" ? payload.customSystem : ""]
+  const fastRouting =
+    payload?.lane === "fast" && (payload as { force?: boolean }).force !== true
+      ? `ROUTING: You are the primary agent. If the request needs image/video creation or editing, live browsing, a connected app, an external action, files, code execution, or a long multi-step task, your first and only content must be exactly [[MEGSY_ESCALATE_TO_FULL_CHAT]] — the specialist agents handle it. Otherwise answer now.`
+      : "";
+  const system = [SYSTEM, fastRouting, GENUI_PROMPT, typeof payload?.customSystem === "string" ? payload.customSystem : ""]
     .filter(Boolean)
     .join("\n\n");
 
