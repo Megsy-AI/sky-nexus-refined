@@ -55,6 +55,35 @@ function rawSseResponse(frame: string) {
 describe("tryFastChat request options", () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it("attaches the caller session to the local chat endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse(["Hello"]));
+    vi.stubGlobal("fetch", fetchMock);
+    await tryFastChat({ messages: [{ role: "user", content: "Hello" }], authToken: "caller-token", fingerprint: "f", onDelta: vi.fn() });
+    expect(new Headers(fetchMock.mock.calls[0][1].headers).get("Authorization")).toBe("Bearer caller-token");
+  });
+
+  it("does not count reasoning-only completion as an answer", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(rawSseResponse('data:{"choices":[{"delta":{"reasoning_content":"thinking"}}]}\n\ndata:[DONE]\n')));
+    const onDelta = vi.fn();
+    expect(await tryFastChat({ messages: [{ role: "user", content: "Hello" }], authToken: "t", fingerprint: "f", onDelta })).toBe("escalate");
+    expect(onDelta).not.toHaveBeenCalled();
+  });
+
+  it("allows delayed response headers until the user stops", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal("fetch", vi.fn((_url, init) => new Promise((resolve, reject) => {
+        init.signal?.addEventListener("abort", () => reject(new DOMException("Stopped", "AbortError")));
+        setTimeout(() => resolve(sseResponse(["Answer after waiting"])), 30000);
+      })));
+      const onDelta = vi.fn();
+      const turn = tryFastChat({ messages: [{ role: "user", content: "Hello" }], authToken: "t", fingerprint: "f", onDelta });
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(await turn).toBe("answered");
+      expect(onDelta).toHaveBeenCalledWith("Answer after waiting");
+    } finally { vi.useRealTimers(); }
+  });
+
   it("keeps the small output budget when forcing a safe trivial turn", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ escalate: true }), {
