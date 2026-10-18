@@ -624,37 +624,9 @@ export async function runChatStreamTurn(opts: RunChatStreamTurnOptions): Promise
     }
   }
 
-  // Stall watchdog: a request that never returns anything used to leave the
-  // "Thinking…" state hanging forever and then vanish with no answer. If no
-  // token, narration or tool activity arrives at all, end the turn with a
-  // clear, retryable message in the user's own language.
+  // Completion, server errors and the user's Stop action own the turn.
+  // Do not abort paid generation merely because no visible text arrived yet.
   const isArabicTurn = /[\u0600-\u06FF]/.test(userInput || "");
-  const STALL_MS = 30_000;
-  const MAX_SILENT_ROUNDS = 2;
-  let silentRounds = 0;
-  let stallTimer: ReturnType<typeof setTimeout> | null = null;
-  const armStallWatchdog = () => {
-    stallTimer = setTimeout(() => {
-      if (hadStreamError || firstTokenAt || assistantContent.trim()) return;
-      const sawActivity = turnNarrations.length > 0 || assistantToolParts.length > 0;
-      silentRounds = sawActivity ? 0 : silentRounds + 1;
-      if (sawActivity || silentRounds < MAX_SILENT_ROUNDS) {
-        armStallWatchdog();
-        return;
-      }
-      try {
-        controller.abort();
-      } catch {
-        /* already closed */
-      }
-      failTurnWithError(
-        isArabicTurn
-          ? "الخدمة أخدت وقت طويل ولم يوصل رد. جرب تبعت الرسالة تاني."
-          : "The service took too long and no reply arrived. Please send your message again.",
-      );
-    }, STALL_MS);
-  };
-  armStallWatchdog();
 
   await streamChat({
     localPipeline: researchPipeline,
@@ -1585,10 +1557,6 @@ export async function runChatStreamTurn(opts: RunChatStreamTurnOptions): Promise
     signal: controller.signal,
   });
 
-  if (stallTimer) {
-    clearTimeout(stallTimer);
-    stallTimer = null;
-  }
 
   function failTurnWithError(err: string) {
     hadStreamError = true;

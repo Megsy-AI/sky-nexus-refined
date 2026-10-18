@@ -97,24 +97,10 @@ export async function tryFastChat({
   routingContext?: string;
 }): Promise<FastChatOutcome> {
   let resp: Response;
-  // Hard ceilings so a stalled provider can never leave the UI in a forever
-  // "Thinking…" state: headers must arrive within HEADERS_MS, and the stream
-  // must keep producing bytes at least every IDLE_MS.
-  const HEADERS_MS = 18_000;
-  const IDLE_MS = 25_000;
-  const ctl = new AbortController();
-  const onOuterAbort = () => ctl.abort();
-  signal?.addEventListener("abort", onOuterAbort, { once: true });
-  const reqSignal = ctl.signal;
+  // Only the user's Stop action cancels generation; provider startup and
+  // reasoning may legitimately take longer than a fixed browser deadline.
+  const reqSignal = signal;
   const requestedMaxTokens = maxTokens ?? (force ? 8192 : undefined);
-  let headersTimer: ReturnType<typeof setTimeout> | null = setTimeout(
-    () => ctl.abort(),
-    HEADERS_MS,
-  );
-  const clearHeadersTimer = () => {
-    if (headersTimer) clearTimeout(headersTimer);
-    headersTimer = null;
-  };
   const proxyBody = JSON.stringify({
     messages,
     lane: "fast",
@@ -127,7 +113,7 @@ export async function tryFastChat({
   const viaProxy = () =>
     fetch("/api/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
       body: proxyBody,
       signal: reqSignal,
     });
@@ -148,14 +134,7 @@ export async function tryFastChat({
     }
   } catch (proxyError) {
     if (signal?.aborted) {
-      clearHeadersTimer();
-      signal?.removeEventListener("abort", onOuterAbort);
       throw proxyError;
-    }
-    if (reqSignal.aborted) {
-      clearHeadersTimer();
-      signal?.removeEventListener("abort", onOuterAbort);
-      return "escalate";
     }
     try {
       resp = await fetch(FAST_URL, {
@@ -184,13 +163,10 @@ export async function tryFastChat({
         resp = await viaProxy();
       }
     } catch (e) {
-      clearHeadersTimer();
-      signal?.removeEventListener("abort", onOuterAbort);
       if (signal?.aborted) throw e;
       return "escalate";
     }
   }
-  clearHeadersTimer();
 
   const contentType = resp.headers.get("content-type") || "";
   if (!resp.ok || !resp.body || !contentType.includes("text/event-stream")) {
@@ -209,7 +185,6 @@ export async function tryFastChat({
   const decoder = new TextDecoder();
   let textBuffer = "";
   let emitted = false;
-  let sawAnyPayload = false;
   const routeSentinelStart = "[[MEGSY_ESCALATE_TO_FULL_CHAT";
   const routeSentinelStartUpper = routeSentinelStart.toUpperCase();
   const routeSentinelPattern = /^\[\[MEGSY_ESCALATE_TO_FULL_CHAT(?::[a-z0-9_-]+)?\]\]/i;
@@ -238,7 +213,6 @@ export async function tryFastChat({
   const anywhereSentinel = /\[\[\s*MEGSY_ESCALATE/i;
   let tail = "";
   const handleContent = (content: string) => {
-    sawAnyPayload = true;
     if (!routeResolved) {
       routePrefix += content;
       const candidate = routePrefix.replace(/^\s+/, "");
@@ -271,8 +245,7 @@ export async function tryFastChat({
         (delta?.reasoning_content as string | undefined) ??
         (delta?.reasoning as string | undefined);
       if (typeof reasoning === "string" && reasoning) {
-        sawAnyPayload = true;
-        onReasoning?.(reasoning);
+            onReasoning?.(reasoning);
       }
       const content = delta?.content;
       if (typeof content === "string" && content) handleContent(content);
@@ -282,24 +255,11 @@ export async function tryFastChat({
     return false;
   };
 
-  const readWithIdleGuard = async () => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    try {
-      return await Promise.race([
-        reader.read(),
-        new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error("__FAST_IDLE__")), IDLE_MS);
-        }),
-      ]);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-  };
 
   try {
     let done = false;
     while (!done) {
-      const { done: streamDone, value } = await readWithIdleGuard();
+      const { done: streamDone, value } = await reader.read();
       if (streamDone) break;
       textBuffer += decoder.decode(value, { stream: true });
       let idx: number;
@@ -329,25 +289,8 @@ export async function tryFastChat({
       // clean (nothing emitted) escalation is safe.
       return emitted ? "answered" : "escalate";
     }
-    if ((e as Error)?.message === "__FAST_IDLE__") {
-      // The provider went silent mid-stream: stop waiting instead of leaving
-      // the UI thinking forever.
-      try {
-        ctl.abort();
-      } catch {
-        /* ignore */
-      }
-      try {
-        await reader.cancel();
-      } catch {
-        /* ignore */
-      }
-      return emitted ? "answered" : "escalate";
-    }
     if (emitted) return "answered";
     throw e;
-  } finally {
-    signal?.removeEventListener("abort", onOuterAbort);
   }
 
   // Never expose a partial internal route marker if the provider cut the frame
@@ -361,6 +304,6 @@ export async function tryFastChat({
     emitContent(buffered);
   }
 
-  if (!sawAnyPayload && !emitted) return "escalate";
-  return "answered";
+  // Reasoning alone is not a visible answer. Continue through the full lane.
+  return emitted ? "answered" : "escalate";
 }

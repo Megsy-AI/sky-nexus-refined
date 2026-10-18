@@ -524,7 +524,7 @@ export async function streamChat({
       try {
         const primary = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
           body: JSON.stringify({ ...JSON.parse(requestBody), lane: "full" }),
           signal,
         });
@@ -549,14 +549,8 @@ export async function streamChat({
       }
     }
 
-    // Headers watchdog: if the full chat function does not even answer with
-    // headers in time, stop waiting and let the fast lane rescue the turn.
-    const HEADERS_TIMEOUT_MS = deepResearch ? 120_000 : 15_000;
+    // Keep generation alive until completion or an explicit Stop action.
     for (let attempt = 0; resp === null && attempt < 3; attempt += 1) {
-      const headersCtl = new AbortController();
-      const onOuterAbort = () => headersCtl.abort();
-      signal?.addEventListener("abort", onOuterAbort, { once: true });
-      const headersTimer = setTimeout(() => headersCtl.abort(), HEADERS_TIMEOUT_MS);
       try {
         resp = await fetch(CHAT_URL, {
           method: "POST",
@@ -567,32 +561,23 @@ export async function streamChat({
             "x-anon-fingerprint": fingerprint,
           },
           body: requestBody,
-          signal: headersCtl.signal,
+          signal,
         });
         if (resp.status === 401 && attempt === 0) {
           authToken = await refreshAccessToken();
+          resp = null;
           continue;
         }
         if (resp.status >= 500 && attempt < 2) {
+          await resp.body?.cancel();
+          resp = null;
           await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
           continue;
         }
         break;
       } catch (error) {
-        if (signal?.aborted) throw error;
-        if (headersCtl.signal.aborted) {
-          // Full path never answered — rescue with the fast model.
-          if (await rescueWithFastChat()) {
-            await onDone();
-            return;
-          }
-          throw new Error("IDLE_TIMEOUT");
-        }
-        if (attempt === 2) throw error;
+        if (signal?.aborted || attempt === 2) throw error;
         await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
-      } finally {
-        clearTimeout(headersTimer);
-        signal?.removeEventListener("abort", onOuterAbort);
       }
     }
     // Second deployment path: when the Supabase edge function is
@@ -605,7 +590,7 @@ export async function streamChat({
       try {
         const proxied = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
           body: JSON.stringify({ ...JSON.parse(requestBody), lane: "full" }),
           signal,
         });
@@ -675,6 +660,7 @@ export async function streamChat({
     }
 
     let terminalStreamError = false;
+    let receivedToolOutput = false;
     const handlePayload = (parsed: any) => {
       if (parsed.error) {
         terminalStreamError = true;
@@ -682,6 +668,12 @@ export async function streamChat({
         return;
       }
 
+      if (
+        (Array.isArray(parsed.images) && parsed.images.length > 0) ||
+        (Array.isArray(parsed.products) && parsed.products.length > 0) ||
+        parsed.browser || parsed.event === "tool_result" ||
+        parsed.tool_event?.event === "tool_result"
+      ) receivedToolOutput = true;
       if (parsed.event && typeof parsed.event === "string") onEvent?.(parsed);
       // Surface tool activity (tool_call / tool_result) as a synthetic event
       // so the chat UI can render brand icons + action text inline.
@@ -709,89 +701,42 @@ export async function streamChat({
     let textBuffer = "";
     let streamDone = false;
 
-    // Idle timeout: if NO bytes arrive within this window we treat the
-    // connection as dead and surface a friendly retry message instead of an
-    // infinite spinner. Heartbeats from the server (`: keep-alive ...`) keep
-    // this alive even during long tool flows. Deep Research jobs do many
-    // long-running steps (search → fetch → synthesize) and often take 1-3
-    // minutes between visible deltas, so we use a much larger window for them.
-    const isVideoTurn =
-      String(chatMode || "").toLowerCase() === "video" ||
-      messages.some((m) => {
-        const content = Array.isArray(m.content)
-          ? m.content.map((p) => p.text || "").join(" ")
-          : String(m.content || "");
-        return /(video|clip|animate|animation|motion|فيديو|فديو|ڤيديو|تحريك|حرك)/i.test(content);
-      });
-    const IDLE_TIMEOUT_MS = deepResearch ? 240_000 : isVideoTurn ? 10 * 60_000 : 60_000;
-    const idleAbort = new AbortController();
-    let idleTimer: ReturnType<typeof setTimeout> | null = null;
-    // Before the first visible token we are much less patient: a silent
-    // stream means the turn is stuck, and the fast lane can rescue it.
-    // The server heartbeats every 5s while planning/researching, and every
-    // heartbeat resets this timer — so this window only has to cover a truly
-    // silent stream, not the whole pre-work phase.
-    const FIRST_CONTENT_TIMEOUT_MS = deepResearch ? 240_000 : isVideoTurn ? 10 * 60_000 : 25_000;
-    // Hard ceiling on the silent phase: heartbeats keep resetting the idle
-    // timer, so without this a "thinking" turn could spin forever. Once this
-    // deadline passes with no visible token, the fast lane rescues the turn.
-    const firstContentDeadline = Date.now() + FIRST_CONTENT_TIMEOUT_MS;
-    const resetIdle = () => {
-      if (idleTimer) clearTimeout(idleTimer);
-      const wait = receivedAnyContent
-        ? IDLE_TIMEOUT_MS
-        : Math.max(1_000, Math.min(FIRST_CONTENT_TIMEOUT_MS, firstContentDeadline - Date.now()));
-      idleTimer = setTimeout(() => idleAbort.abort(), wait);
-    };
-    resetIdle();
-
-    try {
-      while (!streamDone) {
-        const readPromise = reader.read();
-        const idlePromise = new Promise<never>((_, reject) => {
-          idleAbort.signal.addEventListener("abort", () => reject(new Error("IDLE_TIMEOUT")), {
-            once: true,
-          });
-        });
-        const { done, value } = await Promise.race([readPromise, idlePromise]);
-        if (done) break;
-        resetIdle();
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") {
-            completed = true;
-            streamDone = true;
-            break;
-          }
-
-          try {
-            handlePayload(JSON.parse(jsonStr));
-          } catch {
-            continue;
-          }
+    while (!streamDone && !terminalStreamError) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      textBuffer += decoder.decode(value, { stream: true });
+      let newlineIndex: number;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        const line = textBuffer.slice(0, newlineIndex).trimEnd();
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+        if (!line.startsWith("data:")) continue;
+        const jsonStr = line.slice(5).trim();
+        if (jsonStr === "[DONE]") {
+          completed = true;
+          streamDone = true;
+          break;
         }
+        try {
+          handlePayload(JSON.parse(jsonStr));
+        } catch {
+          /* Ignore malformed frames, not the rest of the stream. */
+        }
+        if (terminalStreamError) break;
       }
-    } finally {
-      if (idleTimer) clearTimeout(idleTimer);
     }
+    if (terminalStreamError) {
+      await reader.cancel().catch(() => undefined);
+      return;
+    }
+    textBuffer += decoder.decode();
 
     if (textBuffer.trim()) {
       for (let raw of textBuffer.split("\n")) {
         if (!raw) continue;
         if (raw.endsWith("\r")) raw = raw.slice(0, -1);
         if (raw.startsWith(":") || raw.trim() === "") continue;
-        if (!raw.startsWith("data: ")) continue;
-        const jsonStr = raw.slice(6).trim();
+        if (!raw.startsWith("data:")) continue;
+        const jsonStr = raw.slice(5).trim();
         if (jsonStr === "[DONE]") {
           completed = true;
           continue;
@@ -802,6 +747,11 @@ export async function streamChat({
           continue;
         }
       }
+    }
+
+    if (!terminalStreamError && !receivedAnyContent && !receivedToolOutput) {
+      onError?.("The chat service returned no answer. Please try again.");
+      return;
     }
 
     if (!completed && !terminalStreamError) {
