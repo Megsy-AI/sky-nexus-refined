@@ -1,4 +1,6 @@
 # Roadmap
+- [ ] Diagnose and repair chat delay / empty-response failure; verify with regression tests and real chat if authentication permits
+- [ ] Use connected Google tools to identify customer acquisition opportunities for Megsy; report concrete findings and blockers
 - [x] Preserve and verify searched phone and food images in generated answers (iPhone 16, Galaxy S25, Koshary and Falafel loaded in browser)
 - [x] Expand OpenUI place, hotel, menu and appointment cards, enable map instructions and refine light/dark colors
 - [x] Verify new card interactions, searched photos and maps on desktop and mobile (13 tests, map pins, view switches, actions; no overflow or runtime errors)
